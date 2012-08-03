@@ -81,7 +81,7 @@ type InterpolationFunction func(float32, float32, image.Image) color.RGBA64
 // A new image with the given dimensions will be returned.
 // If one of the parameters w or h is set to -1, its size will be calculated so that
 // the aspect ratio is that of the originating image.
-// The resizing algorithm uses slices for parallel computation.
+// The resizing algorithm uses channels for parallel computation.
 func Resize(w int, h int, img image.Image, interp InterpolationFunction) image.Image {
 	b_old := img.Bounds()
 	w_old := float32(b_old.Dx())
