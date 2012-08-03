@@ -29,10 +29,49 @@ resize.Resize(w int, h int, img image.Image, interp InterpolationFunction) image
 
 The provided interpolation functions are
 
-- NearestNeighbor: Nearest-neighbor interpolation
-- Bilinear: Bilinear interpolation
-- Bicubic: Bicubic interpolation
-- Lanczos3: Convolution with windowed Sinc function, a=3
+- NearestNeighbor: [Nearest-neighbor interpolation](http://en.wikipedia.org/wiki/Nearest-neighbor_interpolation)
+- Bilinear: [Bilinear interpolation](http://en.wikipedia.org/wiki/Bilinear_interpolation)
+- Bicubic: [Bicubic interpolation](http://en.wikipedia.org/wiki/Bicubic_interpolation)
+- Lanczos3: [Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=3
+
+Sample usage:
+
+```go
+package main
+
+import (
+	"github.com/nfnt/resize"
+	"image/jpeg"
+	"os"
+)
+
+func main() {
+	// open "test.jpg"
+	file, err := os.Open("test.jpg")
+	if err != nil {
+		return
+	}
+
+	// decode jpeg into image.Image
+	img, err := jpeg.Decode(file)
+	if err != nil {
+		return
+	}
+	file.Close()
+
+	// resize to width 1000 using Lanczos resampling
+	m := resize.Resize(1000, -1, img, resize.Lanczos3)
+
+	out, err := os.Create("test_resized.jpg")
+	if err != nil {
+		return
+	}
+	defer out.Close()
+
+	// write new image to file
+	jpeg.Encode(out, m, nil)
+}
+```
 
 License
 =======

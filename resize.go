@@ -47,6 +47,13 @@ func (t *Trans2) Eval(x, y float32) (u, v float32) {
 
 // Calculate scaling factors using old and new image dimensions.
 func calcFactors(w, h int, wo, ho float32) (sx, sy float32) {
+	if w <= 0 {
+		w = -1
+	}
+	if h <= 0 {
+		h = -1
+	}
+
 	if w == -1 {
 		if h == -1 {
 			sx = 1.0
