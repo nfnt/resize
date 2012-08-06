@@ -104,7 +104,7 @@ func Resize(w int, h int, img image.Image, interp InterpolationFunction) image.I
 				}
 			}
 			c <- 1
-		}(image.Rect(b.Min.X, b.Min.Y+i*(b.Dy())/4, b.Max.X, b.Min.Y+(i+1)*(b.Dy())/4), c)
+		}(image.Rect(b.Min.X, b.Min.Y+i*(b.Dy())/NCPU, b.Max.X, b.Min.Y+(i+1)*(b.Dy())/NCPU), c)
 	}
 
 	for i := 0; i < NCPU; i++ {
