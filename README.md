@@ -1,10 +1,10 @@
 Resize
 ======
 
-Image resizing for the [Go programming language](http://golang.org) that provides a few interpolation methods.
+Image resizing for the [Go programming language](http://golang.org) that includes a few interpolation methods.
 
 Installation
-============
+------------
 
 ```bash
 $ go get github.com/nfnt/resize
@@ -13,7 +13,7 @@ $ go get github.com/nfnt/resize
 It's that easy!
 
 Usage
-=====
+-----
 
 Import package with
 
@@ -24,15 +24,15 @@ import "github.com/nfnt/resize"
 Resize creates a scaled image with new dimensions (w,h) using the interpolation function interp.
 
 ```go
-resize.Resize(w int, h int, img image.Image, interp InterpolationFunction) image.Image 
+resize.Resize(w int, h int, img image.Image, interp resize.InterpolationFunction) image.Image 
 ```
 
 The provided interpolation functions are
 
-- NearestNeighbor: [Nearest-neighbor interpolation](http://en.wikipedia.org/wiki/Nearest-neighbor_interpolation)
-- Bilinear: [Bilinear interpolation](http://en.wikipedia.org/wiki/Bilinear_interpolation)
-- Bicubic: [Bicubic interpolation](http://en.wikipedia.org/wiki/Bicubic_interpolation)
-- Lanczos3: [Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=3
+- `NearestNeighbor`: [Nearest-neighbor interpolation](http://en.wikipedia.org/wiki/Nearest-neighbor_interpolation)
+- `Bilinear`: [Bilinear interpolation](http://en.wikipedia.org/wiki/Bilinear_interpolation)
+- `Bicubic`: [Bicubic interpolation](http://en.wikipedia.org/wiki/Bicubic_interpolation)
+- `Lanczos3`: [Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=3
 
 Sample usage:
 
@@ -74,7 +74,7 @@ func main() {
 ```
 
 License
-=======
+-------
 
 Copyright (c) 2012 Jan Schlicht <janschlicht@gmail.com>
 Resize is released under an MIT style license.
