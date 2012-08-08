@@ -21,10 +21,10 @@ Import package with
 import "github.com/nfnt/resize"
 ```
 
-Resize creates a scaled image with new dimensions (w,h) using the interpolation function interp.
+Resize creates a scaled image with new dimensions (width, height) using the interpolation function interp.
 
 ```go
-resize.Resize(w int, h int, img image.Image, interp resize.InterpolationFunction) image.Image 
+resize.Resize(width, height int, img image.Image, interp resize.InterpolationFunction) image.Image, error 
 ```
 
 The provided interpolation functions are
@@ -60,7 +60,10 @@ func main() {
 	file.Close()
 
 	// resize to width 1000 using Lanczos resampling
-	m := resize.Resize(1000, -1, img, resize.Lanczos3)
+	m, err := resize.Resize(1000, -1, img, resize.Lanczos3)
+	if err != nil {
+		return
+	}
 
 	out, err := os.Create("test_resized.jpg")
 	if err != nil {
