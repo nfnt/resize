@@ -25,6 +25,7 @@ THIS SOFTWARE.
 package resize
 
 import (
+	"errors"
 	"image"
 	"image/color"
 	"runtime"
@@ -46,28 +47,21 @@ func (t *Trans2) Eval(x, y float32) (u, v float32) {
 }
 
 // Calculate scaling factors using old and new image dimensions.
-func calcFactors(w, h int, wo, ho float32) (sx, sy float32) {
-	if w <= 0 {
-		w = -1
-	}
-	if h <= 0 {
-		h = -1
-	}
-
-	if w == -1 {
-		if h == -1 {
-			sx = 1.0
-			sy = 1.0
+func calcFactors(width, height int, oldWidth, oldHeight float32) (scaleX, scaleY float32) {
+	if width == -1 {
+		if height == -1 {
+			scaleX = 1.0
+			scaleY = 1.0
 		} else {
-			sy = ho / float32(h)
-			sx = sy
+			scaleY = oldHeight / float32(height)
+			scaleX = scaleY
 		}
 	} else {
-		sx = wo / float32(w)
-		if h == -1 {
-			sy = sx
+		scaleX = oldWidth / float32(width)
+		if height == -1 {
+			scaleY = scaleX
 		} else {
-			sy = ho / float32(h)
+			scaleY = oldHeight / float32(height)
 		}
 	}
 	return
@@ -82,15 +76,19 @@ type InterpolationFunction func(float32, float32, image.Image) color.RGBA64
 // If one of the parameters w or h is set to -1, its size will be calculated so that
 // the aspect ratio is that of the originating image.
 // The resizing algorithm uses channels for parallel computation.
-func Resize(w int, h int, img image.Image, interp InterpolationFunction) image.Image {
-	b_old := img.Bounds()
-	w_old := float32(b_old.Dx())
-	h_old := float32(b_old.Dy())
+func Resize(width, height int, img image.Image, interp InterpolationFunction) (out image.Image, err error) {
+	if width < -1 || height < -1 {
+		err = errors.New("Wrong width/height argument")
+		return
+	}
+	oldBounds := img.Bounds()
+	oldWidth := float32(oldBounds.Dx())
+	oldHeight := float32(oldBounds.Dy())
 
-	scaleX, scaleY := calcFactors(w, h, w_old, h_old)
-	t := Trans2{scaleX, 0, float32(b_old.Min.X), 0, scaleY, float32(b_old.Min.Y)}
+	scaleX, scaleY := calcFactors(width, height, oldWidth, oldHeight)
+	t := Trans2{scaleX, 0, float32(oldBounds.Min.X), 0, scaleY, float32(oldBounds.Min.Y)}
 
-	m := image.NewRGBA64(image.Rect(0, 0, int(w_old/scaleX), int(h_old/scaleY)))
+	m := image.NewRGBA64(image.Rect(0, 0, int(oldWidth/scaleX), int(oldHeight/scaleY)))
 	b := m.Bounds()
 
 	c := make(chan int, NCPU)
@@ -110,6 +108,7 @@ func Resize(w int, h int, img image.Image, interp InterpolationFunction) image.I
 	for i := 0; i < NCPU; i++ {
 		<-c
 	}
+	out = m
 
-	return m
+	return
 }

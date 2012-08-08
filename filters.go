@@ -64,10 +64,10 @@ func Bilinear(x, y float32, img image.Image) color.RGBA64 {
 
 	var row [2]RGBA
 	var col [2]RGBA
-	row = [2]RGBA{toRGBA(img.At(xf, yf)), toRGBA(img.At(xf+1, yf))}
-	col[0] = linearInterp(x, &row)
-	row = [2]RGBA{toRGBA(img.At(xf, yf+1)), toRGBA(img.At(xf+1, yf+1))}
-	col[1] = linearInterp(x, &row)
+	for i := 0; i < 2; i++ {
+		row = [2]RGBA{toRGBA(img.At(xf, yf+i)), toRGBA(img.At(xf+1, yf+i))}
+		col[i] = linearInterp(x, &row)
+	}
 
 	c := linearInterp(y, &col)
 	return color.RGBA64{c[0], c[1], c[2], c[3]}
@@ -88,14 +88,10 @@ func Bicubic(x, y float32, img image.Image) color.RGBA64 {
 
 	var row [4]RGBA
 	var col [4]RGBA
-	row = [4]RGBA{toRGBA(img.At(xf-1, yf-1)), toRGBA(img.At(xf, yf-1)), toRGBA(img.At(xf+1, yf-1)), toRGBA(img.At(xf+2, yf-1))}
-	col[0] = cubicInterp(x, &row)
-	row = [4]RGBA{toRGBA(img.At(xf-1, yf)), toRGBA(img.At(xf, yf)), toRGBA(img.At(xf+1, yf)), toRGBA(img.At(xf+2, yf))}
-	col[1] = cubicInterp(x, &row)
-	row = [4]RGBA{toRGBA(img.At(xf-1, yf+1)), toRGBA(img.At(xf, yf+1)), toRGBA(img.At(xf+1, yf+1)), toRGBA(img.At(xf+2, yf+1))}
-	col[2] = cubicInterp(x, &row)
-	row = [4]RGBA{toRGBA(img.At(xf-1, yf+2)), toRGBA(img.At(xf, yf+2)), toRGBA(img.At(xf+1, yf+2)), toRGBA(img.At(xf+2, yf+2))}
-	col[3] = cubicInterp(x, &row)
+	for i := 0; i < 4; i++ {
+		row = [4]RGBA{toRGBA(img.At(xf-1, yf+i-1)), toRGBA(img.At(xf, yf+i-1)), toRGBA(img.At(xf+1, yf+i-1)), toRGBA(img.At(xf+2, yf+i-1))}
+		col[i] = cubicInterp(x, &row)
+	}
 
 	c := cubicInterp(y, &col)
 	return color.RGBA64{c[0], c[1], c[2], c[3]}
@@ -124,18 +120,10 @@ func Lanczos3(x, y float32, img image.Image) color.RGBA64 {
 
 	var row [6]RGBA
 	var col [6]RGBA
-	row = [6]RGBA{toRGBA(img.At(xf-2, yf-2)), toRGBA(img.At(xf-1, yf-2)), toRGBA(img.At(xf, yf-2)), toRGBA(img.At(xf+1, yf-2)), toRGBA(img.At(xf+2, yf-2)), toRGBA(img.At(xf+3, yf-2))}
-	col[0] = lanczos_x(x, &row)
-	row = [6]RGBA{toRGBA(img.At(xf-2, yf-1)), toRGBA(img.At(xf-1, yf-1)), toRGBA(img.At(xf, yf-1)), toRGBA(img.At(xf+1, yf-1)), toRGBA(img.At(xf+2, yf-1)), toRGBA(img.At(xf+3, yf-1))}
-	col[1] = lanczos_x(x, &row)
-	row = [6]RGBA{toRGBA(img.At(xf-2, yf)), toRGBA(img.At(xf-1, yf)), toRGBA(img.At(xf, yf)), toRGBA(img.At(xf+1, yf)), toRGBA(img.At(xf+2, yf)), toRGBA(img.At(xf+3, yf))}
-	col[2] = lanczos_x(x, &row)
-	row = [6]RGBA{toRGBA(img.At(xf-2, yf+1)), toRGBA(img.At(xf-1, yf+1)), toRGBA(img.At(xf, yf+1)), toRGBA(img.At(xf+1, yf+1)), toRGBA(img.At(xf+2, yf+1)), toRGBA(img.At(xf+3, yf+1))}
-	col[3] = lanczos_x(x, &row)
-	row = [6]RGBA{toRGBA(img.At(xf-2, yf+2)), toRGBA(img.At(xf-1, yf+2)), toRGBA(img.At(xf, yf+2)), toRGBA(img.At(xf+1, yf+2)), toRGBA(img.At(xf+2, yf+2)), toRGBA(img.At(xf+3, yf+2))}
-	col[4] = lanczos_x(x, &row)
-	row = [6]RGBA{toRGBA(img.At(xf-2, yf+3)), toRGBA(img.At(xf-1, yf+3)), toRGBA(img.At(xf, yf+3)), toRGBA(img.At(xf+1, yf+3)), toRGBA(img.At(xf+2, yf+3)), toRGBA(img.At(xf+3, yf+3))}
-	col[5] = lanczos_x(x, &row)
+	for i := 0; i < 6; i++ {
+		row = [6]RGBA{toRGBA(img.At(xf-2, yf+i-2)), toRGBA(img.At(xf-1, yf+i-2)), toRGBA(img.At(xf, yf+i-2)), toRGBA(img.At(xf+1, yf+i-2)), toRGBA(img.At(xf+2, yf+i-2)), toRGBA(img.At(xf+3, yf+i-2))}
+		col[i] = lanczos_x(x, &row)
+	}
 
 	c := lanczos_x(y, &col)
 	return color.RGBA64{c[0], c[1], c[2], c[3]}
