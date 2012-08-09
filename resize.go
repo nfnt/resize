@@ -25,7 +25,6 @@ THIS SOFTWARE.
 package resize
 
 import (
-	"errors"
 	"image"
 	"image/color"
 	"runtime"
@@ -47,9 +46,9 @@ func (t *Trans2) Eval(x, y float32) (u, v float32) {
 }
 
 // Calculate scaling factors using old and new image dimensions.
-func calcFactors(width, height int, oldWidth, oldHeight float32) (scaleX, scaleY float32) {
-	if width == -1 {
-		if height == -1 {
+func calcFactors(width, height uint, oldWidth, oldHeight float32) (scaleX, scaleY float32) {
+	if width == 0 {
+		if height == 0 {
 			scaleX = 1.0
 			scaleY = 1.0
 		} else {
@@ -58,7 +57,7 @@ func calcFactors(width, height int, oldWidth, oldHeight float32) (scaleX, scaleY
 		}
 	} else {
 		scaleX = oldWidth / float32(width)
-		if height == -1 {
+		if height == 0 {
 			scaleY = scaleX
 		} else {
 			scaleY = oldHeight / float32(height)
@@ -73,14 +72,10 @@ type InterpolationFunction func(float32, float32, image.Image) color.RGBA64
 
 // Resize an image to new width w and height h using the interpolation function interp.
 // A new image with the given dimensions will be returned.
-// If one of the parameters w or h is set to -1, its size will be calculated so that
+// If one of the parameters w or h is set to 0, its size will be calculated so that
 // the aspect ratio is that of the originating image.
 // The resizing algorithm uses channels for parallel computation.
-func Resize(width, height int, img image.Image, interp InterpolationFunction) (out image.Image, err error) {
-	if width < -1 || height < -1 {
-		err = errors.New("Wrong width/height argument")
-		return
-	}
+func Resize(width, height uint, img image.Image, interp InterpolationFunction) image.Image {
 	oldBounds := img.Bounds()
 	oldWidth := float32(oldBounds.Dx())
 	oldHeight := float32(oldBounds.Dy())
@@ -108,7 +103,6 @@ func Resize(width, height int, img image.Image, interp InterpolationFunction) (o
 	for i := 0; i < NCPU; i++ {
 		<-c
 	}
-	out = m
 
-	return
+	return m
 }
