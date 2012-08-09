@@ -21,11 +21,11 @@ Import package with
 import "github.com/nfnt/resize"
 ```
 
-Resize creates a scaled image with new dimensions (`width`, `height`) using the interpolation function interp.
+Resize creates a scaled image with new dimensions (`width`, `height`) using the interpolation function `interp`.
 If either `width` or `height` is set to 0, it will be set to an aspect ratio preserving value.
 
 ```go
-resize.Resize(width, height uint, img image.Image, interp resize.InterpolationFunction) image.Image, error 
+resize.Resize(width, height uint, img image.Image, interp resize.InterpolationFunction) image.Image 
 ```
 
 The provided interpolation functions are
