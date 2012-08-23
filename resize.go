@@ -21,7 +21,7 @@ THIS SOFTWARE.
 // utilized in the computations.
 //
 // Example:
-//     imgResized := resize.Resize(1000, -1, imgOld, Lanczos3)
+//     imgResized := resize.Resize(1000, 0, imgOld, Lanczos3)
 package resize
 
 import (
@@ -70,9 +70,9 @@ func calcFactors(width, height uint, oldWidth, oldHeight float32) (scaleX, scale
 // an image
 type InterpolationFunction func(float32, float32, image.Image) color.RGBA64
 
-// Resize an image to new width w and height h using the interpolation function interp.
+// Resize an image to new width and height using the interpolation function interp.
 // A new image with the given dimensions will be returned.
-// If one of the parameters w or h is set to 0, its size will be calculated so that
+// If one of the parameters width or height is set to 0, its size will be calculated so that
 // the aspect ratio is that of the originating image.
 // The resizing algorithm uses channels for parallel computation.
 func Resize(width, height uint, img image.Image, interp InterpolationFunction) image.Image {
@@ -83,26 +83,35 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 	scaleX, scaleY := calcFactors(width, height, oldWidth, oldHeight)
 	t := Trans2{scaleX, 0, float32(oldBounds.Min.X), 0, scaleY, float32(oldBounds.Min.Y)}
 
-	m := image.NewRGBA64(image.Rect(0, 0, int(oldWidth/scaleX), int(oldHeight/scaleY)))
-	b := m.Bounds()
+	resizedImg := image.NewRGBA64(image.Rect(0, 0, int(oldWidth/scaleX), int(oldHeight/scaleY)))
+	b := resizedImg.Bounds()
+	
+	// prevent resize from doing too much work
+	// if #CPUs > width
+	n := 1
+	if (NCPU < b.Dy()) {
+		n = NCPU
+	} else {
+		n = b.Dy()
+	}
 
-	c := make(chan int, NCPU)
-	for i := 0; i < NCPU; i++ {
+	c := make(chan int, n)
+	for i := 0; i < n; i++ {
 		go func(b image.Rectangle, c chan int) {
 			var u, v float32
 			for y := b.Min.Y; y < b.Max.Y; y++ {
 				for x := b.Min.X; x < b.Max.X; x++ {
 					u, v = t.Eval(float32(x), float32(y))
-					m.SetRGBA64(x, y, interp(u, v, img))
+					resizedImg.SetRGBA64(x, y, interp(u, v, img))
 				}
 			}
 			c <- 1
-		}(image.Rect(b.Min.X, b.Min.Y+i*(b.Dy())/NCPU, b.Max.X, b.Min.Y+(i+1)*(b.Dy())/NCPU), c)
+		}(image.Rect(b.Min.X, b.Min.Y+i*(b.Dy())/n, b.Max.X, b.Min.Y+(i+1)*(b.Dy())/n), c)
 	}
 
-	for i := 0; i < NCPU; i++ {
+	for i := 0; i < n; i++ {
 		<-c
 	}
 
-	return m
+	return resizedImg
 }
