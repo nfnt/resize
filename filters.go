@@ -27,8 +27,8 @@ type RGBA [4]uint16
 
 // build RGBA from an arbitrary color
 func toRGBA(c color.Color) RGBA {
-	n := color.RGBA64Model.Convert(c).(color.RGBA64)
-	return RGBA{n.R, n.G, n.B, n.A}
+	r, g, b, a := c.RGBA()
+	return RGBA{uint16(r), uint16(g), uint16(b), uint16(a)}
 }
 
 func clampToUint16(x float32) (y uint16) {

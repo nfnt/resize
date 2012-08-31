@@ -85,11 +85,11 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 
 	resizedImg := image.NewRGBA64(image.Rect(0, 0, int(oldWidth/scaleX), int(oldHeight/scaleY)))
 	b := resizedImg.Bounds()
-	
+
 	// prevent resize from doing too much work
 	// if #CPUs > width
 	n := 1
-	if (NCPU < b.Dy()) {
+	if NCPU < b.Dy() {
 		n = NCPU
 	} else {
 		n = b.Dy()
