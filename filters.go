@@ -97,19 +97,59 @@ func Bicubic(x, y float32, img image.Image) color.RGBA64 {
 	return color.RGBA64{c[0], c[1], c[2], c[3]}
 }
 
-// 1-d convolution with windowed sinc for a=3.
-func lanczos_x(x float32, p *[6]RGBA) (c RGBA) {
+// 1-d convolution with windowed sinc for a=2.
+func lanczos2_x(x float32, p *[4]RGBA) (c RGBA) {
 	x -= float32(math.Floor(float64(x)))
-	var v float32
+
+	var kernel float32
+	var sum float32 = 0 // for kernel normalization
 	l := [4]float32{0.0, 0.0, 0.0, 0.0}
+
 	for j := range p {
-		v = float32(Sinc(float64(x-float32(j-2)))) * float32(Sinc(float64((x-float32(j-2))/3.0)))
+		kernel = float32(Sinc(float64(x-float32(j-1)))) * float32(Sinc(float64((x-float32(j-1))/2.0)))
+		sum += kernel
 		for i := range c {
-			l[i] += float32(p[j][i]) * v
+			l[i] += float32(p[j][i]) * kernel
 		}
 	}
 	for i := range c {
-		c[i] = clampToUint16(l[i])
+		c[i] = clampToUint16(l[i] / sum)
+	}
+	return
+}
+
+// Lanczos interpolation (a=2).
+func Lanczos2(x, y float32, img image.Image) color.RGBA64 {
+	xf, yf := int(math.Floor(float64(x))), int(math.Floor(float64(y)))
+
+	var row [4]RGBA
+	var col [4]RGBA
+	for i := range row {
+		row = [4]RGBA{toRGBA(img.At(xf-1, yf+i-1)), toRGBA(img.At(xf, yf+i-1)), toRGBA(img.At(xf+1, yf+i-1)), toRGBA(img.At(xf+2, yf+i-1))}
+		col[i] = lanczos2_x(x, &row)
+	}
+
+	c := lanczos2_x(y, &col)
+	return color.RGBA64{c[0], c[1], c[2], c[3]}
+}
+
+// 1-d convolution with windowed sinc for a=3.
+func lanczos3_x(x float32, p *[6]RGBA) (c RGBA) {
+	x -= float32(math.Floor(float64(x)))
+
+	var kernel float32
+	var sum float32 = 0 // for kernel normalization
+	l := [4]float32{0.0, 0.0, 0.0, 0.0}
+
+	for j := range p {
+		kernel = float32(Sinc(float64(x-float32(j-2)))) * float32(Sinc(float64((x-float32(j-2))/3.0)))
+		sum += kernel
+		for i := range c {
+			l[i] += float32(p[j][i]) * kernel
+		}
+	}
+	for i := range c {
+		c[i] = clampToUint16(l[i] / sum)
 	}
 	return
 }
@@ -120,11 +160,11 @@ func Lanczos3(x, y float32, img image.Image) color.RGBA64 {
 
 	var row [6]RGBA
 	var col [6]RGBA
-	for i := 0; i < 6; i++ {
+	for i := range row {
 		row = [6]RGBA{toRGBA(img.At(xf-2, yf+i-2)), toRGBA(img.At(xf-1, yf+i-2)), toRGBA(img.At(xf, yf+i-2)), toRGBA(img.At(xf+1, yf+i-2)), toRGBA(img.At(xf+2, yf+i-2)), toRGBA(img.At(xf+3, yf+i-2))}
-		col[i] = lanczos_x(x, &row)
+		col[i] = lanczos3_x(x, &row)
 	}
 
-	c := lanczos_x(y, &col)
+	c := lanczos3_x(y, &col)
 	return color.RGBA64{c[0], c[1], c[2], c[3]}
 }

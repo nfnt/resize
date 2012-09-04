@@ -33,6 +33,7 @@ The provided interpolation functions are
 - `NearestNeighbor`: [Nearest-neighbor interpolation](http://en.wikipedia.org/wiki/Nearest-neighbor_interpolation)
 - `Bilinear`: [Bilinear interpolation](http://en.wikipedia.org/wiki/Bilinear_interpolation)
 - `Bicubic`: [Bicubic interpolation](http://en.wikipedia.org/wiki/Bicubic_interpolation)
+- `Lanczos2`: [Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=2
 - `Lanczos3`: [Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=3
 
 Sample usage:
@@ -43,6 +44,7 @@ package main
 import (
 	"github.com/nfnt/resize"
 	"image/jpeg"
+	"log"
 	"os"
 )
 
@@ -50,13 +52,13 @@ func main() {
 	// open "test.jpg"
 	file, err := os.Open("test.jpg")
 	if err != nil {
-		return
+		log.Fatal(err)
 	}
 
 	// decode jpeg into image.Image
 	img, err := jpeg.Decode(file)
 	if err != nil {
-		return
+		log.Fatal(err)
 	}
 	file.Close()
 
@@ -66,7 +68,7 @@ func main() {
 
 	out, err := os.Create("test_resized.jpg")
 	if err != nil {
-		return
+		log.Fatal(err)
 	}
 	defer out.Close()
 
