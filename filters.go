@@ -19,7 +19,6 @@ package resize
 import (
 	"image"
 	"image/color"
-	"math"
 )
 
 // color.RGBA64 as array
@@ -44,14 +43,14 @@ func clampToUint16(x float32) (y uint16) {
 // Nearest-neighbor interpolation.
 // Approximates a value by returning the value of the nearest point.
 func NearestNeighbor(x, y float32, img image.Image) color.RGBA64 {
-	xn, yn := int(x), int(y)
+	xn, yn := int(float32(int(x))+0.5), int(float32(int(y))+0.5)
 	c := toRGBA(img.At(xn, yn))
 	return color.RGBA64{c[0], c[1], c[2], c[3]}
 }
 
 // Linear interpolation.
 func linearInterp(x float32, p *[2]RGBA) (c RGBA) {
-	x -= float32(math.Floor(float64(x)))
+	x -= float32(int(x))
 	for i := range c {
 		c[i] = clampToUint16(float32(p[0][i])*(1.0-x) + x*float32(p[1][i]))
 	}
@@ -60,7 +59,7 @@ func linearInterp(x float32, p *[2]RGBA) (c RGBA) {
 
 // Bilinear interpolation.
 func Bilinear(x, y float32, img image.Image) color.RGBA64 {
-	xf, yf := int(math.Floor(float64(x))), int(math.Floor(float64(y)))
+	xf, yf := int(x), int(y)
 
 	var row [2]RGBA
 	var col [2]RGBA
@@ -75,7 +74,7 @@ func Bilinear(x, y float32, img image.Image) color.RGBA64 {
 
 // cubic interpolation
 func cubicInterp(x float32, p *[4]RGBA) (c RGBA) {
-	x -= float32(math.Floor(float64(x)))
+	x -= float32(int(x))
 	for i := range c {
 		c[i] = clampToUint16(float32(p[1][i]) + 0.5*x*(float32(p[2][i])-float32(p[0][i])+x*(2.0*float32(p[0][i])-5.0*float32(p[1][i])+4.0*float32(p[2][i])-float32(p[3][i])+x*(3.0*(float32(p[1][i])-float32(p[2][i]))+float32(p[3][i])-float32(p[0][i])))))
 	}
@@ -84,7 +83,7 @@ func cubicInterp(x float32, p *[4]RGBA) (c RGBA) {
 
 // Bicubic interpolation.
 func Bicubic(x, y float32, img image.Image) color.RGBA64 {
-	xf, yf := int(math.Floor(float64(x))), int(math.Floor(float64(y)))
+	xf, yf := int(x), int(y)
 
 	var row [4]RGBA
 	var col [4]RGBA
@@ -99,7 +98,7 @@ func Bicubic(x, y float32, img image.Image) color.RGBA64 {
 
 // 1-d convolution with windowed sinc for a=2.
 func lanczos2_x(x float32, p *[4]RGBA) (c RGBA) {
-	x -= float32(math.Floor(float64(x)))
+	x -= float32(int(x))
 
 	var kernel float32
 	var sum float32 = 0 // for kernel normalization
@@ -120,7 +119,7 @@ func lanczos2_x(x float32, p *[4]RGBA) (c RGBA) {
 
 // Lanczos interpolation (a=2).
 func Lanczos2(x, y float32, img image.Image) color.RGBA64 {
-	xf, yf := int(math.Floor(float64(x))), int(math.Floor(float64(y)))
+	xf, yf := int(x), int(y)
 
 	var row [4]RGBA
 	var col [4]RGBA
@@ -135,7 +134,7 @@ func Lanczos2(x, y float32, img image.Image) color.RGBA64 {
 
 // 1-d convolution with windowed sinc for a=3.
 func lanczos3_x(x float32, p *[6]RGBA) (c RGBA) {
-	x -= float32(math.Floor(float64(x)))
+	x -= float32(int(x))
 
 	var kernel float32
 	var sum float32 = 0 // for kernel normalization
@@ -156,7 +155,7 @@ func lanczos3_x(x float32, p *[6]RGBA) (c RGBA) {
 
 // Lanczos interpolation (a=3).
 func Lanczos3(x, y float32, img image.Image) color.RGBA64 {
-	xf, yf := int(math.Floor(float64(x))), int(math.Floor(float64(y)))
+	xf, yf := int(x), int(y)
 
 	var row [6]RGBA
 	var col [6]RGBA
