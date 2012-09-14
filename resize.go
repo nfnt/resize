@@ -30,11 +30,6 @@ import (
 	"runtime"
 )
 
-var (
-	// NCPU holds the number of available CPUs at runtime.
-	NCPU = runtime.NumCPU()
-)
-
 // Trans2 is a 2-dimensional linear transformation.
 type Trans2 [6]float32
 
@@ -86,15 +81,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 	resizedImg := image.NewRGBA64(image.Rect(0, 0, int(oldWidth/scaleX), int(oldHeight/scaleY)))
 	b := resizedImg.Bounds()
 
-	// prevent resize from doing too much work
-	// if #CPUs > width
-	n := 1
-	if NCPU < b.Dy() {
-		n = NCPU
-	} else {
-		n = b.Dy()
-	}
-
+	n := numJobs(b.Dy())
 	c := make(chan int, n)
 	for i := 0; i < n; i++ {
 		go func(b image.Rectangle, c chan int) {
@@ -114,4 +101,15 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 	}
 
 	return resizedImg
+}
+
+// Set number of parallel jobs
+// but prevent resize from doing too much work
+// if #CPUs > width
+func numJobs(d int) (n int) {
+	n = runtime.NumCPU()
+	if n > d {
+		n = d
+	}
+	return
 }
