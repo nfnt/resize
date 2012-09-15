@@ -41,17 +41,24 @@ func clampToUint16(x float32) (y uint16) {
 	return
 }
 
-func convolution1d(x float32, kernel func(float32) float32, p []rgba16) (c rgba16) {
+type filterModel struct {
+	src     image.Image
+	size    int
+	kernel  func(float32) float32
+	tempRow []rgba16
+	tempCol []rgba16
+}
+
+func (f *filterModel) convolution1d(x float32, p []rgba16) (c rgba16) {
 	x -= float32(int(x))
-	
-	m := float32(len(p)/2-1)
+	m := float32(f.size/2 - 1)
 
 	var k float32
 	var sum float32 = 0
 	l := [4]float32{0.0, 0.0, 0.0, 0.0}
 
 	for j := range p {
-		k = kernel(x+m-float32(j))
+		k = f.kernel(x + m - float32(j))
 		sum += k
 		for i := range c {
 			l[i] += float32(p[j][i]) * k
@@ -63,51 +70,43 @@ func convolution1d(x float32, kernel func(float32) float32, p []rgba16) (c rgba1
 	return
 }
 
-func filter(x, y float32, img image.Image, n int, kernel func(x float32) float32) color.RGBA64 {
-	xf, yf := int(x)-n/2+1, int(y)-n/2+1
+func (f *filterModel) Interpolate(x, y float32) color.RGBA64 {
+	xf, yf := int(x)-f.size/2+1, int(y)-f.size/2+1
 
-	row := make([]rgba16, n)
-	col := make([]rgba16, n)
-
-	for i := 0; i < n; i++ {
-		for j := 0; j < n; j++ {
-			row[j] = toRGBA(img.At(xf+j, yf+i))
+	for i := 0; i < f.size; i++ {
+		for j := 0; j < f.size; j++ {
+			f.tempRow[j] = toRGBA(f.src.At(xf+j, yf+i))
 		}
-		col[i] = convolution1d(x, kernel, row)
+		f.tempCol[i] = f.convolution1d(x, f.tempRow)
 	}
 
-	c := convolution1d(y, kernel, col)
+	c := f.convolution1d(y, f.tempCol)
 	return color.RGBA64{c[0], c[1], c[2], c[3]}
 }
 
 // Nearest-neighbor interpolation.
 // Approximates a value by returning the value of the nearest point.
-func NearestNeighbor(x, y float32, img image.Image) color.RGBA64 {
-	n := 2
-	kernel := func(x float32) (y float32) {
+func NearestNeighbor(img image.Image) Filter {
+	return &filterModel{img, 2, func(x float32) (y float32) {
 		if x >= -0.5 && x < 0.5 {
 			y = 1
 		} else {
 			y = 0
 		}
 		return
-	}
-	return filter(x, y, img, n, kernel)
+	}, make([]rgba16, 2), make([]rgba16, 2)}
 }
 
 // Bicubic interpolation
-func Bilinear(x, y float32, img image.Image) color.RGBA64 {
-	n := 2
-	kernel := func(x float32) float32 {
+func Bilinear(img image.Image) Filter {
+	return &filterModel{img, 2, func(x float32) float32 {
 		return 1 - float32(math.Abs(float64(x)))
-	}
-	return filter(x, y, img, n, kernel)
+	}, make([]rgba16, 2), make([]rgba16, 2)}
 }
 
 // Bicubic interpolation
-func Bicubic(x, y float32, img image.Image) color.RGBA64 {
-	n := 4
-	kernel := func(x float32) (y float32) {
+func Bicubic(img image.Image) Filter {
+	return &filterModel{img, 4, func(x float32) (y float32) {
 		absX := float32(math.Abs(float64(x)))
 		if absX <= 1 {
 			y = absX*absX*(1.5*absX-2.5) + 1
@@ -115,24 +114,19 @@ func Bicubic(x, y float32, img image.Image) color.RGBA64 {
 			y = absX*(absX*(2.5-0.5*absX)-4) + 2
 		}
 		return
-	}
-	return filter(x, y, img, n, kernel)
+	}, make([]rgba16, 4), make([]rgba16, 4)}
 }
 
 // Lanczos interpolation (a=2).
-func Lanczos2(x, y float32, img image.Image) color.RGBA64 {
-	n := 4
-	kernel := func(x float32) float32 {
+func Lanczos2(img image.Image) Filter {
+	return &filterModel{img, 4, func(x float32) float32 {
 		return float32(Sinc(float64(x))) * float32(Sinc(float64((x)/float32(2))))
-	}
-	return filter(x, y, img, n, kernel)
+	}, make([]rgba16, 4), make([]rgba16, 4)}
 }
 
 // Lanczos interpolation (a=3).
-func Lanczos3(x, y float32, img image.Image) color.RGBA64 {
-	n := 6
-	kernel := func(x float32) float32 {
+func Lanczos3(img image.Image) Filter {
+	return &filterModel{img, 6, func(x float32) float32 {
 		return float32(Sinc(float64(x))) * float32(Sinc(float64((x)/float32(3))))
-	}
-	return filter(x, y, img, n, kernel)
+	}, make([]rgba16, 6), make([]rgba16, 6)}
 }

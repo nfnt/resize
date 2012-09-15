@@ -40,30 +40,14 @@ func (t *Trans2) Eval(x, y float32) (u, v float32) {
 	return
 }
 
-// Calculate scaling factors using old and new image dimensions.
-func calcFactors(width, height uint, oldWidth, oldHeight float32) (scaleX, scaleY float32) {
-	if width == 0 {
-		if height == 0 {
-			scaleX = 1.0
-			scaleY = 1.0
-		} else {
-			scaleY = oldHeight / float32(height)
-			scaleX = scaleY
-		}
-	} else {
-		scaleX = oldWidth / float32(width)
-		if height == 0 {
-			scaleY = scaleX
-		} else {
-			scaleY = oldHeight / float32(height)
-		}
-	}
-	return
+// Filter can interpolate at points (x,y)
+type Filter interface {
+	Interpolate(x, y float32) color.RGBA64
 }
 
-// InterpolationFunction return a color for an arbitrary point inside
-// an image
-type InterpolationFunction func(float32, float32, image.Image) color.RGBA64
+// InterpolationFunction return a Filter implementation
+// that operates on an image
+type InterpolationFunction func(image.Image) Filter
 
 // Resize an image to new width and height using the interpolation function interp.
 // A new image with the given dimensions will be returned.
@@ -85,11 +69,12 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 	c := make(chan int, n)
 	for i := 0; i < n; i++ {
 		go func(b image.Rectangle, c chan int) {
+			filter := interp(img)
 			var u, v float32
 			for y := b.Min.Y; y < b.Max.Y; y++ {
 				for x := b.Min.X; x < b.Max.X; x++ {
 					u, v = t.Eval(float32(x), float32(y))
-					resizedImg.SetRGBA64(x, y, interp(u, v, img))
+					resizedImg.SetRGBA64(x, y, filter.Interpolate(u, v))
 				}
 			}
 			c <- 1
@@ -101,6 +86,27 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 	}
 
 	return resizedImg
+}
+
+// Calculate scaling factors using old and new image dimensions.
+func calcFactors(width, height uint, oldWidth, oldHeight float32) (scaleX, scaleY float32) {
+	if width == 0 {
+		if height == 0 {
+			scaleX = 1.0
+			scaleY = 1.0
+		} else {
+			scaleY = oldHeight / float32(height)
+			scaleX = scaleY
+		}
+	} else {
+		scaleX = oldWidth / float32(width)
+		if height == 0 {
+			scaleY = scaleX
+		} else {
+			scaleY = oldHeight / float32(height)
+		}
+	}
+	return
 }
 
 // Set number of parallel jobs
