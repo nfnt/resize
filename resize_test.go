@@ -14,7 +14,7 @@ func init() {
 
 func Test_Nearest(t *testing.T) {
 	m := Resize(6, 0, img, NearestNeighbor)
-	if m.At(2, 2) != m.At(3, 3) {
+	if m.At(2, 2) == m.At(3, 3) {
 		t.Fail()
 	}
 }
