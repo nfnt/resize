@@ -25,8 +25,8 @@ import (
 // color.RGBA64 as array
 type rgba16 [4]uint16
 
-// build RGBA from an arbitrary color
-func toRGBA(c color.Color) rgba16 {
+// build rgba16 from an arbitrary color
+func toRgba16(c color.Color) rgba16 {
 	r, g, b, a := c.RGBA()
 	return rgba16{uint16(r), uint16(g), uint16(b), uint16(a)}
 }
@@ -50,15 +50,12 @@ type filterModel struct {
 }
 
 func (f *filterModel) convolution1d(x float32, p []rgba16) (c rgba16) {
-	x -= float32(int(x))
-	m := float32(f.size/2 - 1)
-
 	var k float32
 	var sum float32 = 0
 	l := [4]float32{0.0, 0.0, 0.0, 0.0}
 
 	for j := range p {
-		k = f.kernel(x + m - float32(j))
+		k = f.kernel(x - float32(j))
 		sum += k
 		for i := range c {
 			l[i] += float32(p[j][i]) * k
@@ -72,10 +69,12 @@ func (f *filterModel) convolution1d(x float32, p []rgba16) (c rgba16) {
 
 func (f *filterModel) Interpolate(x, y float32) color.RGBA64 {
 	xf, yf := int(x)-f.size/2+1, int(y)-f.size/2+1
+	x -= float32(xf)
+	y -= float32(yf)
 
 	for i := 0; i < f.size; i++ {
 		for j := 0; j < f.size; j++ {
-			f.tempRow[j] = toRGBA(f.src.At(xf+j, yf+i))
+			f.tempRow[j] = toRgba16(f.src.At(xf+j, yf+i))
 		}
 		f.tempCol[i] = f.convolution1d(x, f.tempRow)
 	}
@@ -84,8 +83,7 @@ func (f *filterModel) Interpolate(x, y float32) color.RGBA64 {
 	return color.RGBA64{c[0], c[1], c[2], c[3]}
 }
 
-// Nearest-neighbor interpolation.
-// Approximates a value by returning the value of the nearest point.
+// Nearest-neighbor interpolation
 func NearestNeighbor(img image.Image) Filter {
 	return &filterModel{img, 2, func(x float32) (y float32) {
 		if x >= -0.5 && x < 0.5 {
@@ -97,14 +95,14 @@ func NearestNeighbor(img image.Image) Filter {
 	}, make([]rgba16, 2), make([]rgba16, 2)}
 }
 
-// Bicubic interpolation
+// Bilinear interpolation
 func Bilinear(img image.Image) Filter {
 	return &filterModel{img, 2, func(x float32) float32 {
 		return 1 - float32(math.Abs(float64(x)))
 	}, make([]rgba16, 2), make([]rgba16, 2)}
 }
 
-// Bicubic interpolation
+// Bicubic interpolation (with cubic hermite spline)
 func Bicubic(img image.Image) Filter {
 	return &filterModel{img, 4, func(x float32) (y float32) {
 		absX := float32(math.Abs(float64(x)))
