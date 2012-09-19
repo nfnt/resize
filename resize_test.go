@@ -3,12 +3,14 @@ package resize
 import (
 	"image"
 	"image/color"
+	"runtime"
 	"testing"
 )
 
 var img = image.NewGray16(image.Rect(0, 0, 3, 3))
 
 func init() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	img.Set(1, 1, color.White)
 }
 
@@ -43,6 +45,9 @@ func Test_ZeroImg(t *testing.T) {
 }
 
 func Benchmark_BigResize(b *testing.B) {
-	m := Resize(1000, 1000, img, Lanczos3)
+	var m image.Image
+	for i := 0; i < b.N; i++ {
+		m = Resize(1000, 1000, img, Lanczos3)
+	}
 	m.At(0, 0)
 }

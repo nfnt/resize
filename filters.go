@@ -115,16 +115,30 @@ func Bicubic(img image.Image) Filter {
 	}, make([]rgba16, 4), make([]rgba16, 4)}
 }
 
+func MitchellNetravali(img image.Image) Filter {
+	return &filterModel{img, 4, func(x float32) (y float32) {
+		absX := float32(math.Abs(float64(x)))
+		if absX <= 1 {
+			y = absX*absX*(7*absX-12) + 16.0/3
+		} else {
+			y = -(absX - 2) * (absX - 2) / 3 * (7*absX - 8)
+		}
+		return
+	}, make([]rgba16, 4), make([]rgba16, 4)}
+}
+
+func lanczosKernel(a uint) func(float32) float32 {
+	return func(x float32) float32 {
+		return float32(Sinc(float64(x))) * float32(Sinc(float64(x/float32(a))))
+	}
+}
+
 // Lanczos interpolation (a=2).
 func Lanczos2(img image.Image) Filter {
-	return &filterModel{img, 4, func(x float32) float32 {
-		return float32(Sinc(float64(x))) * float32(Sinc(float64((x)/float32(2))))
-	}, make([]rgba16, 4), make([]rgba16, 4)}
+	return &filterModel{img, 4, lanczosKernel(2), make([]rgba16, 4), make([]rgba16, 4)}
 }
 
 // Lanczos interpolation (a=3).
 func Lanczos3(img image.Image) Filter {
-	return &filterModel{img, 6, func(x float32) float32 {
-		return float32(Sinc(float64(x))) * float32(Sinc(float64((x)/float32(3))))
-	}, make([]rgba16, 6), make([]rgba16, 6)}
+	return &filterModel{img, 6, lanczosKernel(3), make([]rgba16, 6), make([]rgba16, 6)}
 }
