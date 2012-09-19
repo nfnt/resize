@@ -42,20 +42,26 @@ func clampToUint16(x float32) (y uint16) {
 }
 
 type filterModel struct {
-	src     image.Image
-	size    int
-	kernel  func(float32) float32
-	tempRow []rgba16
-	tempCol []rgba16
+	src              image.Image
+	factor           [2]float32
+	kernel           func(float32) float32
+	tempRow, tempCol []rgba16
 }
 
-func (f *filterModel) convolution1d(x float32, p []rgba16) (c rgba16) {
+func (f *filterModel) convolution1d(x float32, p []rgba16, isRow bool) (c rgba16) {
 	var k float32
 	var sum float32 = 0
 	l := [4]float32{0.0, 0.0, 0.0, 0.0}
 
+	var index uint
+	if isRow {
+		index = 0
+	} else {
+		index = 1
+	}
+
 	for j := range p {
-		k = f.kernel(x - float32(j))
+		k = f.kernel((x - float32(j)) / f.factor[index])
 		sum += k
 		for i := range c {
 			l[i] += float32(p[j][i]) * k
@@ -68,43 +74,49 @@ func (f *filterModel) convolution1d(x float32, p []rgba16) (c rgba16) {
 }
 
 func (f *filterModel) Interpolate(x, y float32) color.RGBA64 {
-	xf, yf := int(x)-f.size/2+1, int(y)-f.size/2+1
+	xf, yf := int(x)-len(f.tempRow)/2+1, int(y)-len(f.tempCol)/2+1
 	x -= float32(xf)
 	y -= float32(yf)
 
-	for i := 0; i < f.size; i++ {
-		for j := 0; j < f.size; j++ {
+	for i := 0; i < len(f.tempCol); i++ {
+		for j := 0; j < len(f.tempRow); j++ {
 			f.tempRow[j] = toRgba16(f.src.At(xf+j, yf+i))
 		}
-		f.tempCol[i] = f.convolution1d(x, f.tempRow)
+		f.tempCol[i] = f.convolution1d(x, f.tempRow, true)
 	}
 
-	c := f.convolution1d(y, f.tempCol)
+	c := f.convolution1d(y, f.tempCol, false)
 	return color.RGBA64{c[0], c[1], c[2], c[3]}
 }
 
+func createFilter(img image.Image, factor [2]float32, size int, kernel func(float32) float32) Filter {
+	sizeX := size * (int(math.Ceil(float64(factor[0]))))
+	sizeY := size * (int(math.Ceil(float64(factor[1]))))
+	return &filterModel{img, factor, kernel, make([]rgba16, sizeX), make([]rgba16, sizeY)}
+}
+
 // Nearest-neighbor interpolation
-func NearestNeighbor(img image.Image) Filter {
-	return &filterModel{img, 2, func(x float32) (y float32) {
+func NearestNeighbor(img image.Image, factor [2]float32) Filter {
+	return createFilter(img, factor, 2, func(x float32) (y float32) {
 		if x >= -0.5 && x < 0.5 {
 			y = 1
 		} else {
 			y = 0
 		}
 		return
-	}, make([]rgba16, 2), make([]rgba16, 2)}
+	})
 }
 
 // Bilinear interpolation
-func Bilinear(img image.Image) Filter {
-	return &filterModel{img, 2, func(x float32) float32 {
+func Bilinear(img image.Image, factor [2]float32) Filter {
+	return createFilter(img, factor, 2, func(x float32) float32 {
 		return 1 - float32(math.Abs(float64(x)))
-	}, make([]rgba16, 2), make([]rgba16, 2)}
+	})
 }
 
 // Bicubic interpolation (with cubic hermite spline)
-func Bicubic(img image.Image) Filter {
-	return &filterModel{img, 4, func(x float32) (y float32) {
+func Bicubic(img image.Image, factor [2]float32) Filter {
+	return createFilter(img, factor, 4, func(x float32) (y float32) {
 		absX := float32(math.Abs(float64(x)))
 		if absX <= 1 {
 			y = absX*absX*(1.5*absX-2.5) + 1
@@ -112,11 +124,11 @@ func Bicubic(img image.Image) Filter {
 			y = absX*(absX*(2.5-0.5*absX)-4) + 2
 		}
 		return
-	}, make([]rgba16, 4), make([]rgba16, 4)}
+	})
 }
 
-func MitchellNetravali(img image.Image) Filter {
-	return &filterModel{img, 4, func(x float32) (y float32) {
+func MitchellNetravali(img image.Image, factor [2]float32) Filter {
+	return createFilter(img, factor, 4, func(x float32) (y float32) {
 		absX := float32(math.Abs(float64(x)))
 		if absX <= 1 {
 			y = absX*absX*(7*absX-12) + 16.0/3
@@ -124,7 +136,7 @@ func MitchellNetravali(img image.Image) Filter {
 			y = -(absX - 2) * (absX - 2) / 3 * (7*absX - 8)
 		}
 		return
-	}, make([]rgba16, 4), make([]rgba16, 4)}
+	})
 }
 
 func lanczosKernel(a uint) func(float32) float32 {
@@ -134,11 +146,11 @@ func lanczosKernel(a uint) func(float32) float32 {
 }
 
 // Lanczos interpolation (a=2).
-func Lanczos2(img image.Image) Filter {
-	return &filterModel{img, 4, lanczosKernel(2), make([]rgba16, 4), make([]rgba16, 4)}
+func Lanczos2(img image.Image, factor [2]float32) Filter {
+	return createFilter(img, factor, 4, lanczosKernel(2))
 }
 
 // Lanczos interpolation (a=3).
-func Lanczos3(img image.Image) Filter {
-	return &filterModel{img, 6, lanczosKernel(3), make([]rgba16, 6), make([]rgba16, 6)}
+func Lanczos3(img image.Image, factor [2]float32) Filter {
+	return createFilter(img, factor, 6, lanczosKernel(3))
 }

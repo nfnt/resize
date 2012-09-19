@@ -51,3 +51,13 @@ func Benchmark_BigResize(b *testing.B) {
 	}
 	m.At(0, 0)
 }
+
+func Benchmark_Reduction(b *testing.B) {
+	largeImg := image.NewRGBA(image.Rect(0, 0, 1000, 1000))
+
+	var m image.Image
+	for i := 0; i < b.N; i++ {
+		m = Resize(300, 300, largeImg, Lanczos3)
+	}
+	m.At(0, 0)
+}

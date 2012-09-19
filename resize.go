@@ -46,8 +46,10 @@ type Filter interface {
 }
 
 // InterpolationFunction return a Filter implementation
-// that operates on an image
-type InterpolationFunction func(image.Image) Filter
+// that operates on an image. Two factors
+// allow to scale the filter kernels in x- and y-direction
+// to prevent moire patterns.
+type InterpolationFunction func(image.Image, [2]float32) Filter
 
 // Resize an image to new width and height using the interpolation function interp.
 // A new image with the given dimensions will be returned.
@@ -69,7 +71,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 	c := make(chan int, n)
 	for i := 0; i < n; i++ {
 		go func(b image.Rectangle, c chan int) {
-			filter := interp(img)
+			filter := interp(img, [2]float32{clampFactor(scaleX), clampFactor(scaleY)})
 			var u, v float32
 			for y := b.Min.Y; y < b.Max.Y; y++ {
 				for x := b.Min.X; x < b.Max.X; x++ {
@@ -105,6 +107,16 @@ func calcFactors(width, height uint, oldWidth, oldHeight float32) (scaleX, scale
 		} else {
 			scaleY = oldHeight / float32(height)
 		}
+	}
+	return
+}
+
+// Set filter scaling factor to avoid moire patterns.
+// This is only useful in case of downscaling (factor>1).
+func clampFactor(factor float32) (r float32) {
+	r = factor
+	if r < 1 {
+		r = 1
 	}
 	return
 }
