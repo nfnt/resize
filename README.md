@@ -80,7 +80,6 @@ func main() {
 TODO
 ----
 
-- Implement low-pass filtering before downscaling to prevent moiré patterns in the resulting image
 - Minimize calls to image.Image.At(): It's pretty slow but inevitable as it keeps the code generic
 
 License
