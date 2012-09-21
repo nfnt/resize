@@ -73,10 +73,21 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		go func(b image.Rectangle, c chan int) {
 			filter := interp(img, [2]float32{clampFactor(scaleX), clampFactor(scaleY)})
 			var u, v float32
+			var color color.RGBA64
 			for y := b.Min.Y; y < b.Max.Y; y++ {
 				for x := b.Min.X; x < b.Max.X; x++ {
 					u, v = t.Eval(float32(x), float32(y))
-					resizedImg.SetRGBA64(x, y, filter.Interpolate(u, v))
+					//resizedImg.SetRGBA64(x, y, filter.Interpolate(u, v))
+					color = filter.Interpolate(u, v)
+					i := resizedImg.PixOffset(x, y)
+					resizedImg.Pix[i+0] = uint8(color.R >> 8)
+					resizedImg.Pix[i+1] = uint8(color.R)
+					resizedImg.Pix[i+2] = uint8(color.G >> 8)
+					resizedImg.Pix[i+3] = uint8(color.G)
+					resizedImg.Pix[i+4] = uint8(color.B >> 8)
+					resizedImg.Pix[i+5] = uint8(color.B)
+					resizedImg.Pix[i+6] = uint8(color.A >> 8)
+					resizedImg.Pix[i+7] = uint8(color.A)
 				}
 			}
 			c <- 1

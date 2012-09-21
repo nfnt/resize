@@ -57,7 +57,7 @@ func Benchmark_Reduction(b *testing.B) {
 
 	var m image.Image
 	for i := 0; i < b.N; i++ {
-		m = Resize(300, 300, largeImg, Lanczos3)
+		m = Resize(300, 300, largeImg, Bicubic)
 	}
 	m.At(0, 0)
 }

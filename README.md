@@ -33,7 +33,7 @@ The provided interpolation functions are
 - `NearestNeighbor`: [Nearest-neighbor interpolation](http://en.wikipedia.org/wiki/Nearest-neighbor_interpolation)
 - `Bilinear`: [Bilinear interpolation](http://en.wikipedia.org/wiki/Bilinear_interpolation)
 - `Bicubic`: [Bicubic interpolation](http://en.wikipedia.org/wiki/Bicubic_interpolation)
-- `MitchellNetravali` [Mitchell-Netravali interpolation](http://dl.acm.org/citation.cfm?id=378514)
+- `MitchellNetravali`: [Mitchell-Netravali interpolation](http://dl.acm.org/citation.cfm?id=378514)
 - `Lanczos2`: [Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=2
 - `Lanczos3`: [Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=3
 
@@ -77,11 +77,6 @@ func main() {
 	jpeg.Encode(out, m, nil)
 }
 ```
-
-TODO
-----
-
-- Minimize calls to image.Image.At(): It's pretty slow but inevitable as it keeps the code generic
 
 License
 -------
