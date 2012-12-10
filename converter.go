@@ -33,6 +33,23 @@ type genericConverter struct {
 	src image.Image
 }
 
+func replicateBorder1d(x, min, max int) int {
+	if (x < min) {
+		x = min
+	} else if (x >= max) {
+		x = max-1
+	}
+	
+	return x
+}
+
+func replicateBorder(x, y int, rect image.Rectangle) (xx, yy int) {
+	xx = replicateBorder1d(x, rect.Min.X, rect.Max.X)
+	yy = replicateBorder1d(y, rect.Min.Y, rect.Max.Y)
+	return
+}
+
+
 func (c *genericConverter) at(x, y int) colorArray {
 	r, g, b, a := c.src.At(x, y).RGBA()
 	return colorArray{
@@ -48,10 +65,7 @@ type rgbaConverter struct {
 }
 
 func (c *rgbaConverter) at(x, y int) colorArray {
-	if !(image.Point{x, y}.In(c.src.Rect)) {
-		return colorArray{0, 0, 0, 0}
-	}
-	i := c.src.PixOffset(x, y)
+	i := c.src.PixOffset(replicateBorder(x, y, c.src.Rect))
 	return colorArray{
 		float32(uint16(c.src.Pix[i+0])<<8 | uint16(c.src.Pix[i+0])),
 		float32(uint16(c.src.Pix[i+1])<<8 | uint16(c.src.Pix[i+1])),
@@ -65,10 +79,7 @@ type rgba64Converter struct {
 }
 
 func (c *rgba64Converter) at(x, y int) colorArray {
-	if !(image.Point{x, y}.In(c.src.Rect)) {
-		return colorArray{0, 0, 0, 0}
-	}
-	i := c.src.PixOffset(x, y)
+	i := c.src.PixOffset(replicateBorder(x, y, c.src.Rect))
 	return colorArray{
 		float32(uint16(c.src.Pix[i+0])<<8 | uint16(c.src.Pix[i+1])),
 		float32(uint16(c.src.Pix[i+2])<<8 | uint16(c.src.Pix[i+3])),
@@ -82,10 +93,7 @@ type grayConverter struct {
 }
 
 func (c *grayConverter) at(x, y int) colorArray {
-	if !(image.Point{x, y}.In(c.src.Rect)) {
-		return colorArray{0, 0, 0, 0}
-	}
-	i := c.src.PixOffset(x, y)
+	i := c.src.PixOffset(replicateBorder(x, y, c.src.Rect))
 	g := float32(uint16(c.src.Pix[i])<<8 | uint16(c.src.Pix[i]))
 	return colorArray{
 		g,
@@ -100,10 +108,7 @@ type gray16Converter struct {
 }
 
 func (c *gray16Converter) at(x, y int) colorArray {
-	if !(image.Point{x, y}.In(c.src.Rect)) {
-		return colorArray{0, 0, 0, 0}
-	}
-	i := c.src.PixOffset(x, y)
+	i := c.src.PixOffset(replicateBorder(x, y, c.src.Rect))
 	g := float32(uint16(c.src.Pix[i+0])<<8 | uint16(c.src.Pix[i+1]))
 	return colorArray{
 		g,
@@ -118,11 +123,9 @@ type ycbcrConverter struct {
 }
 
 func (c *ycbcrConverter) at(x, y int) colorArray {
-	if !(image.Point{x, y}.In(c.src.Rect)) {
-		return colorArray{0, 0, 0, 0}
-	}
-	yi := c.src.YOffset(x, y)
-	ci := c.src.COffset(x, y)
+	xx, yy := replicateBorder(x, y, c.src.Rect)
+	yi := c.src.YOffset(xx, yy)
+	ci := c.src.COffset(xx, yy)
 	r, g, b := color.YCbCrToRGB(c.src.Y[yi], c.src.Cb[ci], c.src.Cr[ci])
 	return colorArray{
 		float32(uint16(r) * 0x101),
