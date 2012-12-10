@@ -34,12 +34,12 @@ type genericConverter struct {
 }
 
 func replicateBorder1d(x, min, max int) int {
-	if (x < min) {
+	if x < min {
 		x = min
-	} else if (x >= max) {
-		x = max-1
+	} else if x >= max {
+		x = max - 1
 	}
-	
+
 	return x
 }
 
@@ -48,7 +48,6 @@ func replicateBorder(x, y int, rect image.Rectangle) (xx, yy int) {
 	yy = replicateBorder1d(y, rect.Min.Y, rect.Max.Y)
 	return
 }
-
 
 func (c *genericConverter) at(x, y int) colorArray {
 	r, g, b, a := c.src.At(x, y).RGBA()
