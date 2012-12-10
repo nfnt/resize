@@ -21,7 +21,7 @@ THIS SOFTWARE.
 // utilized in the computations.
 //
 // Example:
-//     imgResized := resize.Resize(1000, 0, imgOld, Lanczos3)
+//     imgResized := resize.Resize(1000, 0, imgOld, resize.MitchellNetravali)
 package resize
 
 import (
@@ -77,8 +77,8 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 			for y := b.Min.Y; y < b.Max.Y; y++ {
 				for x := b.Min.X; x < b.Max.X; x++ {
 					u, v = t.Eval(float32(x), float32(y))
-					//resizedImg.SetRGBA64(x, y, filter.Interpolate(u, v))
 					color = filter.Interpolate(u, v)
+
 					i := resizedImg.PixOffset(x, y)
 					resizedImg.Pix[i+0] = uint8(color.R >> 8)
 					resizedImg.Pix[i+1] = uint8(color.R)
@@ -124,12 +124,11 @@ func calcFactors(width, height uint, oldWidth, oldHeight float32) (scaleX, scale
 
 // Set filter scaling factor to avoid moire patterns.
 // This is only useful in case of downscaling (factor>1).
-func clampFactor(factor float32) (r float32) {
-	r = factor
-	if r < 1 {
-		r = 1
+func clampFactor(factor float32) float32 {
+	if factor < 1 {
+		factor = 1
 	}
-	return
+	return factor
 }
 
 // Set number of parallel jobs

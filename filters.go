@@ -29,6 +29,7 @@ func clampToUint16(x float32) (y uint16) {
 	if x < 0 {
 		y = 0
 	} else if x > float32(0xfffe) {
+		// "else if x > float32(0xffff)" will cause overflows!
 		y = 0xffff
 	}
 	return
@@ -150,8 +151,14 @@ func NearestNeighbor(img image.Image, factor [2]float32) Filter {
 
 // Bilinear interpolation
 func Bilinear(img image.Image, factor [2]float32) Filter {
-	return createFilter(img, factor, 2, func(x float32) float32 {
-		return 1 - float32(math.Abs(float64(x)))
+	return createFilter(img, factor, 2, func(x float32) (y float32) {
+		absX := float32(math.Abs(float64(x)))
+		if absX <= 1 {
+			y = 1 - absX
+		} else {
+			y = 0
+		}
+		return
 	})
 }
 
@@ -161,8 +168,10 @@ func Bicubic(img image.Image, factor [2]float32) Filter {
 		absX := float32(math.Abs(float64(x)))
 		if absX <= 1 {
 			y = absX*absX*(1.5*absX-2.5) + 1
-		} else {
+		} else if absX <= 2 {
 			y = absX*(absX*(2.5-0.5*absX)-4) + 2
+		} else {
+			y = 0
 		}
 		return
 	})
@@ -174,16 +183,23 @@ func MitchellNetravali(img image.Image, factor [2]float32) Filter {
 		absX := float32(math.Abs(float64(x)))
 		if absX <= 1 {
 			y = absX*absX*(7*absX-12) + 16.0/3
-		} else {
+		} else if absX <= 2 {
 			y = -(absX - 2) * (absX - 2) / 3 * (7*absX - 8)
+		} else {
+			y = 0
 		}
 		return
 	})
 }
 
 func lanczosKernel(a uint) func(float32) float32 {
-	return func(x float32) float32 {
-		return float32(Sinc(float64(x))) * float32(Sinc(float64(x/float32(a))))
+	return func(x float32) (y float32) {
+		if x > -float32(a) && x < float32(a) {
+			y = float32(Sinc(float64(x))) * float32(Sinc(float64(x/float32(a))))
+		} else {
+			y = 0
+		}
+		return
 	}
 }
 
