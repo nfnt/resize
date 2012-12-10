@@ -50,7 +50,7 @@ func replicateBorder(x, y int, rect image.Rectangle) (xx, yy int) {
 }
 
 func (c *genericConverter) at(x, y int) colorArray {
-	r, g, b, a := c.src.At(x, y).RGBA()
+	r, g, b, a := c.src.At(replicateBorder(x, y, c.src.Bounds())).RGBA()
 	return colorArray{
 		float32(r),
 		float32(g),
