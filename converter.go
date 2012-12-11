@@ -23,16 +23,6 @@ import (
 
 type colorArray [4]float32
 
-// converter allows to retrieve
-// a colorArray for points of an image
-type converter interface {
-	at(x, y int) colorArray
-}
-
-type genericConverter struct {
-	src image.Image
-}
-
 func replicateBorder1d(x, min, max int) int {
 	if x < min {
 		x = min
@@ -47,6 +37,16 @@ func replicateBorder(x, y int, rect image.Rectangle) (xx, yy int) {
 	xx = replicateBorder1d(x, rect.Min.X, rect.Max.X)
 	yy = replicateBorder1d(y, rect.Min.Y, rect.Max.Y)
 	return
+}
+
+// converter allows to retrieve
+// a colorArray for points of an image.
+type converter interface {
+	at(x, y int) colorArray
+}
+
+type genericConverter struct {
+	src image.Image
 }
 
 func (c *genericConverter) at(x, y int) colorArray {
