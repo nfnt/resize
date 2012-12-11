@@ -36,9 +36,9 @@ func clampToUint16(x float32) (y uint16) {
 
 func boolToUint(b bool) (i uint) {
 	if b {
-		i = 0
-	} else {
 		i = 1
+	} else {
+		i = 0
 	}
 
 	return
@@ -60,12 +60,12 @@ type filterModel struct {
 	tempRow, tempCol []colorArray
 }
 
-func (f *filterModel) convolution1d(x float32, p []colorArray, isRow bool) colorArray {
+func (f *filterModel) convolution1d(x float32, p []colorArray, isCol bool) colorArray {
 	var k float32
 	var sum float32 = 0
 	c := colorArray{0.0, 0.0, 0.0, 0.0}
 
-	index := boolToUint(isRow)
+	index := boolToUint(isCol)
 
 	for j := range p {
 		k = f.kernel((x - float32(j)) / f.factor[index])
@@ -91,10 +91,10 @@ func (f *filterModel) Interpolate(x, y float32) color.RGBA64 {
 		for j := 0; j < len(f.tempRow); j++ {
 			f.tempRow[j] = f.at(xf+j, yf+i)
 		}
-		f.tempCol[i] = f.convolution1d(x, f.tempRow, true)
+		f.tempCol[i] = f.convolution1d(x, f.tempRow, false)
 	}
 
-	c := f.convolution1d(y, f.tempCol, false)
+	c := f.convolution1d(y, f.tempCol, true)
 	return color.RGBA64{
 		clampToUint16(c[0]),
 		clampToUint16(c[1]),
