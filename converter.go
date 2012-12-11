@@ -39,8 +39,9 @@ func replicateBorder(x, y int, rect image.Rectangle) (xx, yy int) {
 	return
 }
 
-// converter allows to retrieve
-// a colorArray for points of an image.
+// converter allows to retrieve a colorArray for points of an image.
+// the idea is to speed up computation by providing optimized implementations
+// for different image types instead of relying on image.Image.At().
 type converter interface {
 	at(x, y int) colorArray
 }
