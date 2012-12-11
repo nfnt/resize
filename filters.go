@@ -22,8 +22,7 @@ import (
 	"math"
 )
 
-// restrict an input float32 to the
-// range of uint16 values
+// restrict an input float32 to the range of uint16 values
 func clampToUint16(x float32) (y uint16) {
 	y = uint16(x)
 	if x < 0 {
@@ -35,10 +34,29 @@ func clampToUint16(x float32) (y uint16) {
 	return
 }
 
+func boolToUint(b bool) (i uint) {
+	if b {
+		i = 0
+	} else {
+		i = 1
+	}
+
+	return
+}
+
+// describe a resampling filter
 type filterModel struct {
+	// for optimized access to image points
 	converter
-	factor           [2]float32
-	kernel           func(float32) float32
+
+	// instead of blurring an image before downscaling to avoid aliasing,
+	// to filter is scaled by a factor which leads to a similar effect
+	factor [2]float32
+
+	// resampling is done by convolution with a (scaled) kernel
+	kernel func(float32) float32
+
+	// temporaries used by Interpolate
 	tempRow, tempCol []colorArray
 }
 
@@ -47,12 +65,7 @@ func (f *filterModel) convolution1d(x float32, p []colorArray, isRow bool) color
 	var sum float32 = 0
 	c := colorArray{0.0, 0.0, 0.0, 0.0}
 
-	var index uint
-	if isRow {
-		index = 0
-	} else {
-		index = 1
-	}
+	index := boolToUint(isRow)
 
 	for j := range p {
 		k = f.kernel((x - float32(j)) / f.factor[index])
