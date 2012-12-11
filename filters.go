@@ -46,15 +46,15 @@ func boolToUint(b bool) (i uint) {
 
 // describe a resampling filter
 type filterModel struct {
-	// for optimized access to image points
-	converter
+	// resampling is done by convolution with a (scaled) kernel
+	kernel func(float32) float32
 
 	// instead of blurring an image before downscaling to avoid aliasing,
 	// to filter is scaled by a factor which leads to a similar effect
 	factor [2]float32
 
-	// resampling is done by convolution with a (scaled) kernel
-	kernel func(float32) float32
+	// for optimized access to image points
+	converter
 
 	// temporaries used by Interpolate
 	tempRow, tempCol []colorArray
@@ -112,38 +112,38 @@ func createFilter(img image.Image, factor [2]float32, size int, kernel func(floa
 	switch img.(type) {
 	default:
 		f = &filterModel{
+			kernel, factor,
 			&genericConverter{img},
-			factor, kernel,
 			make([]colorArray, sizeX), make([]colorArray, sizeY),
 		}
 	case *image.RGBA:
 		f = &filterModel{
+			kernel, factor,
 			&rgbaConverter{img.(*image.RGBA)},
-			factor, kernel,
 			make([]colorArray, sizeX), make([]colorArray, sizeY),
 		}
 	case *image.RGBA64:
 		f = &filterModel{
+			kernel, factor,
 			&rgba64Converter{img.(*image.RGBA64)},
-			factor, kernel,
 			make([]colorArray, sizeX), make([]colorArray, sizeY),
 		}
 	case *image.Gray:
 		f = &filterModel{
+			kernel, factor,
 			&grayConverter{img.(*image.Gray)},
-			factor, kernel,
 			make([]colorArray, sizeX), make([]colorArray, sizeY),
 		}
 	case *image.Gray16:
 		f = &filterModel{
+			kernel, factor,
 			&gray16Converter{img.(*image.Gray16)},
-			factor, kernel,
 			make([]colorArray, sizeX), make([]colorArray, sizeY),
 		}
 	case *image.YCbCr:
 		f = &filterModel{
+			kernel, factor,
 			&ycbcrConverter{img.(*image.YCbCr)},
-			factor, kernel,
 			make([]colorArray, sizeX), make([]colorArray, sizeY),
 		}
 	}
