@@ -35,23 +35,13 @@ func clampToUint16(x float32) (y uint16) {
 	return
 }
 
-func boolToUint(b bool) (i uint) {
-	if b {
-		i = 1
-	} else {
-		i = 0
-	}
-
-	return
-}
-
 // describe a resampling filter
 type filterModel struct {
 	// resampling is done by convolution with a (scaled) kernel
 	kernel func(float32) float32
 
 	// instead of blurring an image before downscaling to avoid aliasing,
-	// to filter is scaled by a factor which leads to a similar effect
+	// the filter is scaled by a factor which leads to a similar effect
 	factor [2]float32
 
 	// for optimized access to image points
@@ -61,15 +51,13 @@ type filterModel struct {
 	tempRow, tempCol []colorArray
 }
 
-func (f *filterModel) convolution1d(x float32, p []colorArray, isCol bool) colorArray {
+func (f *filterModel) convolution1d(x float32, p []colorArray, factor float32) colorArray {
 	var k float32
 	var sum float32 = 0
 	c := colorArray{0.0, 0.0, 0.0, 0.0}
 
-	index := boolToUint(isCol)
-
 	for j := range p {
-		k = f.kernel((x - float32(j)) / f.factor[index])
+		k = f.kernel((x - float32(j)) / factor)
 		sum += k
 		for i := range c {
 			c[i] += p[j][i] * k
@@ -94,10 +82,10 @@ func (f *filterModel) Interpolate(x, y float32) color.RGBA64 {
 			f.tempRow[j] = f.at(xf+j, yf+i)
 		}
 
-		f.tempCol[i] = f.convolution1d(x, f.tempRow, false)
+		f.tempCol[i] = f.convolution1d(x, f.tempRow, f.factor[0])
 	}
 
-	c := f.convolution1d(y, f.tempCol, true)
+	c := f.convolution1d(y, f.tempCol, f.factor[1])
 	return color.RGBA64{
 		clampToUint16(c[0]),
 		clampToUint16(c[1]),
