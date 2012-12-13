@@ -31,6 +31,7 @@ func clampToUint16(x float32) (y uint16) {
 		// "else if x > float32(0xffff)" will cause overflows!
 		y = 0xffff
 	}
+
 	return
 }
 
@@ -79,6 +80,7 @@ func (f *filterModel) convolution1d(x float32, p []colorArray, isCol bool) color
 	for i := range c {
 		c[i] = c[i] / sum
 	}
+
 	return c
 }
 
@@ -87,10 +89,11 @@ func (f *filterModel) Interpolate(x, y float32) color.RGBA64 {
 	x -= float32(xf)
 	y -= float32(yf)
 
-	for i := 0; i < len(f.tempCol); i++ {
-		for j := 0; j < len(f.tempRow); j++ {
+	for i := range f.tempCol {
+		for j := range f.tempRow {
 			f.tempRow[j] = f.at(xf+j, yf+i)
 		}
+
 		f.tempCol[i] = f.convolution1d(x, f.tempRow, false)
 	}
 
@@ -147,6 +150,7 @@ func createFilter(img image.Image, factor [2]float32, size int, kernel func(floa
 			make([]colorArray, sizeX), make([]colorArray, sizeY),
 		}
 	}
+
 	return
 }
 
@@ -158,6 +162,7 @@ func NearestNeighbor(img image.Image, factor [2]float32) Filter {
 		} else {
 			y = 0
 		}
+
 		return
 	})
 }
@@ -171,6 +176,7 @@ func Bilinear(img image.Image, factor [2]float32) Filter {
 		} else {
 			y = 0
 		}
+
 		return
 	})
 }
@@ -186,6 +192,7 @@ func Bicubic(img image.Image, factor [2]float32) Filter {
 		} else {
 			y = 0
 		}
+
 		return
 	})
 }
@@ -201,6 +208,7 @@ func MitchellNetravali(img image.Image, factor [2]float32) Filter {
 		} else {
 			y = 0
 		}
+
 		return
 	})
 }
@@ -212,6 +220,7 @@ func lanczosKernel(a uint) func(float32) float32 {
 		} else {
 			y = 0
 		}
+
 		return
 	}
 }
