@@ -44,6 +44,15 @@ func Test_ZeroImg(t *testing.T) {
 	}
 }
 
+func Test_CorrectResize(t *testing.T) {
+	zeroImg := image.NewGray16(image.Rect(0,0,256,256))
+
+	m := Resize(60, 0, zeroImg, NearestNeighbor)
+	if m.Bounds() != image.Rect(0,0,60,60) {
+		t.Fail()
+	}
+}
+
 func Benchmark_BigResize(b *testing.B) {
 	var m image.Image
 	for i := 0; i < b.N; i++ {
