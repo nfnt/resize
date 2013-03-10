@@ -66,6 +66,8 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 
 	resizedImg := image.NewRGBA64(image.Rect(0, 0, int(0.7+oldWidth/scaleX), int(0.7+oldHeight/scaleY)))
 	b := resizedImg.Bounds()
+	adjustX := 0.5 * ((oldWidth-1.0)/scaleX - float32(b.Dx()-1))
+	adjustY := 0.5 * ((oldHeight-1.0)/scaleY - float32(b.Dy()-1))
 
 	n := numJobs(b.Dy())
 	c := make(chan int, n)
@@ -76,7 +78,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 			var color color.RGBA64
 			for y := b.Min.Y; y < b.Max.Y; y++ {
 				for x := b.Min.X; x < b.Max.X; x++ {
-					u, v = t.Eval(float32(x), float32(y))
+					u, v = t.Eval(float32(x)+adjustX, float32(y)+adjustY)
 					color = filter.Interpolate(u, v)
 
 					i := resizedImg.PixOffset(x, y)
