@@ -72,6 +72,48 @@ func (f *filterModel) convolution1d(x float32, p []colorArray, factor float32) c
 	return c
 }
 
+// Convert an sRGB-encoded color component to energy-linear space.
+func srgbToLinear(x float32) float32 {
+	if x <= 0.04045 {
+		return x / 12.92
+	}
+	return float32(math.Pow((float64(x)+0.055)/1.055, 2.4))
+}
+
+// Convert an energy-linear color component to sRGB.
+func linearToSRGB(x float32) float32 {
+	if x <= 0.0031308 {
+		return x * 12.92
+	}
+	return float32(1.055 * math.Pow(float64(x), 1/2.4)) - 0.055
+}
+
+// Convert colorArray from sRGB space and pre-multiplied alpha to
+// energy-linear space with independent alpha.
+func convertColorToLinear(c colorArray) colorArray {
+	if c[3] == 0 {
+		// If alpha is zero, the other components must also be zero
+		// (due to pre-multiplied alpha).  Handle this as a special
+		// case to avoid divide-by-zero below.
+		return colorArray{0,0,0,0}
+	}
+	return colorArray{
+		srgbToLinear(c[0]/c[3]),
+		srgbToLinear(c[1]/c[3]),
+		srgbToLinear(c[2]/c[3]),
+		c[3]}
+}
+
+// Convert colorArray from energy-linear space with independent alpha
+// to sRGB space and pre-multiplied alpha.
+func convertColorFromLinear(c colorArray) colorArray {
+	return colorArray{
+		linearToSRGB(c[0])*c[3],
+		linearToSRGB(c[1])*c[3],
+		linearToSRGB(c[2])*c[3],
+		c[3]}
+}
+
 func (f *filterModel) Interpolate(x, y float32) color.RGBA64 {
 	xf, yf := int(x)-len(f.tempRow)/2+1, int(y)-len(f.tempCol)/2+1
 	x -= float32(xf)
@@ -79,13 +121,12 @@ func (f *filterModel) Interpolate(x, y float32) color.RGBA64 {
 
 	for i := range f.tempCol {
 		for j := range f.tempRow {
-			f.tempRow[j] = f.at(xf+j, yf+i)
+			f.tempRow[j] = convertColorToLinear(f.at(xf+j, yf+i))
 		}
-
 		f.tempCol[i] = f.convolution1d(x, f.tempRow, f.factor[0])
 	}
 
-	c := f.convolution1d(y, f.tempCol, f.factor[1])
+	c := convertColorFromLinear(f.convolution1d(y, f.tempCol, f.factor[1]))
 	return color.RGBA64{
 		clampToUint16(c[0]),
 		clampToUint16(c[1]),
