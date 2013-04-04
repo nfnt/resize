@@ -169,36 +169,29 @@ func Bilinear(img image.Image, factor [2]float32) Filter {
 	})
 }
 
-// Bicubic interpolation (with cubic hermite spline)
-func Bicubic(img image.Image, factor [2]float32) Filter {
-	return createFilter(img, factor, 4, func(x float32) (y float32) {
+func splineKernel(B, C float32) func(float32) float32 {
+	return func(x float32) (y float32) {
 		absX := float32(math.Abs(float64(x)))
 		if absX <= 1 {
-			y = absX*absX*(1.5*absX-2.5) + 1
+			y = (absX*absX*((12.0-9.0*B-6.0*C)*absX+(-18.0+12.0*B+6.0*C)) + (6.0 - 2.0*B)) / 6.0
 		} else if absX <= 2 {
-			y = absX*(absX*(2.5-0.5*absX)-4) + 2
+			y = (absX*(absX*(absX*(-B-6.0*C)+(6.0*B+30.0*C))+(-12.0*B-48.0*C)) + (8.0*B + 24.0*C)) / 6.0
 		} else {
 			y = 0
 		}
 
 		return
-	})
+	}
+}
+
+// Bicubic interpolation (with cubic hermite spline)
+func Bicubic(img image.Image, factor [2]float32) Filter {
+	return createFilter(img, factor, 4, splineKernel(0, 0.5))
 }
 
 // Mitchell-Netravali interpolation
 func MitchellNetravali(img image.Image, factor [2]float32) Filter {
-	return createFilter(img, factor, 4, func(x float32) (y float32) {
-		absX := float32(math.Abs(float64(x)))
-		if absX <= 1 {
-			y = absX*absX*(7*absX-12) + 16.0/3
-		} else if absX <= 2 {
-			y = -(absX - 2) * (absX - 2) / 3 * (7*absX - 8)
-		} else {
-			y = 0
-		}
-
-		return
-	})
+	return createFilter(img, factor, 4, splineKernel(1.0/3.0, 1.0/3.0))
 }
 
 func lanczosKernel(a uint) func(float32) float32 {
