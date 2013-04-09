@@ -170,12 +170,19 @@ func Bilinear(img image.Image, factor [2]float32) Filter {
 }
 
 func splineKernel(B, C float32) func(float32) float32 {
+	factorA := 2.0-1.5*B-C
+	factorB := -3.0+2.0*B+C
+	factorC := 1.0-1.0/3.0*B
+	factorD := -B/6.0-C
+	factorE := B+5.0*C
+	factorF := -2.0*B-8.0*C
+	factorG := 4.0/3.0*B + 4.0*C
 	return func(x float32) (y float32) {
 		absX := float32(math.Abs(float64(x)))
 		if absX <= 1 {
-			y = (absX*absX*((12.0-9.0*B-6.0*C)*absX+(-18.0+12.0*B+6.0*C)) + (6.0 - 2.0*B)) / 6.0
+			y = absX*absX*(factorA*absX+factorB) +factorC 
 		} else if absX <= 2 {
-			y = (absX*(absX*(absX*(-B-6.0*C)+(6.0*B+30.0*C))+(-12.0*B-48.0*C)) + (8.0*B + 24.0*C)) / 6.0
+			y = absX*(absX*(absX*factorD+factorE)+factorF) + factorG
 		} else {
 			y = 0
 		}
