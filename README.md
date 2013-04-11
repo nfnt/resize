@@ -1,7 +1,7 @@
 Resize
 ======
 
-Image resizing for the [Go programming language](http://golang.org) that includes a few interpolation methods.
+Image resizing for the [Go programming language](http://golang.org) with common interpolation methods.
 
 [![Build Status](https://travis-ci.org/nfnt/resize.png)](https://travis-ci.org/nfnt/resize)
 
@@ -30,7 +30,7 @@ If either `width` or `height` is set to 0, it will be set to an aspect ratio pre
 resize.Resize(width, height uint, img image.Image, interp resize.InterpolationFunction) image.Image 
 ```
 
-The provided interpolation functions are
+The provided interpolation functions are (from fast to slow execution time)
 
 - `NearestNeighbor`: [Nearest-neighbor interpolation](http://en.wikipedia.org/wiki/Nearest-neighbor_interpolation)
 - `Bilinear`: [Bilinear interpolation](http://en.wikipedia.org/wiki/Bilinear_interpolation)
@@ -38,6 +38,8 @@ The provided interpolation functions are
 - `MitchellNetravali`: [Mitchell-Netravali interpolation](http://dl.acm.org/citation.cfm?id=378514)
 - `Lanczos2`: [Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=2
 - `Lanczos3`: [Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=3
+
+Which of these methods gives the best results depends on your use case.
 
 Sample usage:
 
@@ -132,4 +134,4 @@ License
 -------
 
 Copyright (c) 2012 Jan Schlicht <janschlicht@gmail.com>
-Resize is released under an MIT style license.
+Resize is released under a MIT style license.
