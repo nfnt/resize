@@ -38,7 +38,7 @@ The provided interpolation functions are (from fast to slow execution time)
 - `MitchellNetravali`: [Mitchell-Netravali interpolation](http://dl.acm.org/citation.cfm?id=378514)
 - `Lanczos2Lut`: Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=2 using a look-up table for fast computation
 - `Lanczos2`: [Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=2
-- `Lanczos3`: [Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=3 using a look-up table for fast computation
+- `Lanczos3Lut`: [Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=3 using a look-up table for fast computation
 - `Lanczos3`: [Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=3
 
 Which of these methods gives the best results depends on your use case.
