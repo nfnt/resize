@@ -198,7 +198,19 @@ func Bilinear(img image.Image, factor [2]float32) Filter {
 	})
 }
 
+// Bicubic interpolation (with cubic hermite spline)
+func Bicubic(img image.Image, factor [2]float32) Filter {
+	return createFilter(img, factor, 4, splineKernel(0, 0.5))
+}
+
+// Mitchell-Netravali interpolation
+func MitchellNetravali(img image.Image, factor [2]float32) Filter {
+	return createFilter(img, factor, 4, splineKernel(1.0/3.0, 1.0/3.0))
+}
+
 func splineKernel(B, C float32) func(float32) float32 {
+	const lanczosTableSize = 300
+
 	factorA := 2.0 - 1.5*B - C
 	factorB := -3.0 + 2.0*B + C
 	factorC := 1.0 - 1.0/3.0*B
@@ -220,16 +232,6 @@ func splineKernel(B, C float32) func(float32) float32 {
 	}
 }
 
-// Bicubic interpolation (with cubic hermite spline)
-func Bicubic(img image.Image, factor [2]float32) Filter {
-	return createFilter(img, factor, 4, splineKernel(0, 0.5))
-}
-
-// Mitchell-Netravali interpolation
-func MitchellNetravali(img image.Image, factor [2]float32) Filter {
-	return createFilter(img, factor, 4, splineKernel(1.0/3.0, 1.0/3.0))
-}
-
 func lanczosKernel(a uint) func(float32) float32 {
 	return func(x float32) (y float32) {
 		if x > -float32(a) && x < float32(a) {
@@ -241,8 +243,6 @@ func lanczosKernel(a uint) func(float32) float32 {
 		return
 	}
 }
-
-const lanczosTableSize = 300
 
 // Lanczos interpolation (a=2)
 func Lanczos2(img image.Image, factor [2]float32) Filter {
