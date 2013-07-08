@@ -53,10 +53,18 @@ func Test_CorrectResize(t *testing.T) {
 	}
 }
 
-func Benchmark_BigResize(b *testing.B) {
+func Benchmark_BigResizeLanczos3(b *testing.B) {
 	var m image.Image
 	for i := 0; i < b.N; i++ {
 		m = Resize(1000, 1000, img, Lanczos3)
+	}
+	m.At(0, 0)
+}
+
+func Benchmark_BigResizeLanczos3Lut(b *testing.B) {
+	var m image.Image
+	for i := 0; i < b.N; i++ {
+		m = Resize(1000, 1000, img, Lanczos3Lut)
 	}
 	m.At(0, 0)
 }
