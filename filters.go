@@ -209,8 +209,6 @@ func MitchellNetravali(img image.Image, factor [2]float32) Filter {
 }
 
 func splineKernel(B, C float32) func(float32) float32 {
-	const lanczosTableSize = 300
-
 	factorA := 2.0 - 1.5*B - C
 	factorB := -3.0 + 2.0*B + C
 	factorC := 1.0 - 1.0/3.0*B
@@ -244,14 +242,28 @@ func lanczosKernel(a uint) func(float32) float32 {
 	}
 }
 
+const lanczosTableSize = 300
+
 // Lanczos interpolation (a=2)
 func Lanczos2(img image.Image, factor [2]float32) Filter {
+	return createFilter(img, factor, 4, lanczosKernel(2))
+}
+
+// Lanczos interpolation (a=2) using a look-up table
+// to speed up computation
+func Lanczos2Lut(img image.Image, factor [2]float32) Filter {
 	return createFilter(img, factor, 4,
 		tableKernel(lanczosKernel(2), lanczosTableSize, 2.0))
 }
 
 // Lanczos interpolation (a=3)
 func Lanczos3(img image.Image, factor [2]float32) Filter {
+	return createFilter(img, factor, 6, lanczosKernel(3))
+}
+
+// Lanczos interpolation (a=3) using a look-up table
+// to speed up computation
+func Lanczos3Lut(img image.Image, factor [2]float32) Filter {
 	return createFilter(img, factor, 6,
 		tableKernel(lanczosKernel(3), lanczosTableSize, 3.0))
 }
