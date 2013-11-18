@@ -42,14 +42,14 @@ func (t *Trans2) Eval(x, y float32) (u, v float32) {
 
 // Filter can interpolate at points (x,y)
 type Filter interface {
-	Interpolate(x, y float32) color.RGBA64
+	Interpolate(u float32, y int) color.RGBA64
 }
 
 // InterpolationFunction return a Filter implementation
 // that operates on an image. Two factors
 // allow to scale the filter kernels in x- and y-direction
 // to prevent moire patterns.
-type InterpolationFunction func(image.Image, [2]float32) Filter
+type InterpolationFunction func(image.Image, float32) Filter
 
 // Resize an image to new width and height using the interpolation function interp.
 // A new image with the given dimensions will be returned.
@@ -64,24 +64,26 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 	scaleX, scaleY := calcFactors(width, height, oldWidth, oldHeight)
 	t := Trans2{scaleX, 0, float32(oldBounds.Min.X), 0, scaleY, float32(oldBounds.Min.Y)}
 
-	resizedImg := image.NewRGBA64(image.Rect(0, 0, int(0.7+oldWidth/scaleX), int(0.7+oldHeight/scaleY)))
+	//resizedImg := image.NewRGBA64(image.Rect(0, 0, int(0.7+oldWidth/scaleX), int(0.7+oldHeight/scaleY)))
+	resizedImg := image.NewRGBA64(image.Rect(0, 0, oldBounds.Dy(), int(0.7+oldWidth/scaleX)))
 	b := resizedImg.Bounds()
-	adjustX := 0.5 * ((oldWidth-1.0)/scaleX - float32(b.Dx()-1))
-	adjustY := 0.5 * ((oldHeight-1.0)/scaleY - float32(b.Dy()-1))
+	adjustX := 0.5 * ((oldWidth-1.0)/scaleX - float32(b.Dy()-1))
+	//adjustY := 0.5 * ((oldHeight-1.0)/scaleY - float32(b.Dy()-1))
 
 	n := numJobs(b.Dy())
 	c := make(chan int, n)
 	for i := 0; i < n; i++ {
 		go func(b image.Rectangle, c chan int) {
-			filter := interp(img, [2]float32{clampFactor(scaleX), clampFactor(scaleY)})
-			var u, v float32
+			filter := interp(img, float32(clampFactor(scaleX)))
+			var u float32
 			var color color.RGBA64
-			for y := b.Min.Y; y < b.Max.Y; y++ {
-				for x := b.Min.X; x < b.Max.X; x++ {
-					u, v = t.Eval(float32(x)+adjustX, float32(y)+adjustY)
-					color = filter.Interpolate(u, v)
+			for y := b.Min.X; y < b.Max.X; y++ {
+				for x := b.Min.Y; x < b.Max.Y; x++ {
+					u = t[0]*(float32(x)+adjustX) + t[2]
 
-					i := resizedImg.PixOffset(x, y)
+					color = filter.Interpolate(u, y)
+
+					i := resizedImg.PixOffset(y, x)
 					resizedImg.Pix[i+0] = uint8(color.R >> 8)
 					resizedImg.Pix[i+1] = uint8(color.R)
 					resizedImg.Pix[i+2] = uint8(color.G >> 8)
@@ -100,7 +102,42 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		<-c
 	}
 
-	return resizedImg
+	resultImg := image.NewRGBA64(image.Rect(0, 0, int(0.7+oldWidth/scaleX), int(0.7+oldHeight/scaleY)))
+	b = resultImg.Bounds()
+	adjustX = 0.5 * ((oldWidth-1.0)/scaleX - float32(b.Dx()-1))
+
+	for i := 0; i < n; i++ {
+		go func(b image.Rectangle, c chan int) {
+			filter := interp(resizedImg, float32(clampFactor(scaleY)))
+			var u float32
+			var color color.RGBA64
+			for y := b.Min.X; y < b.Max.X; y++ {
+				for x := b.Min.Y; x < b.Max.Y; x++ {
+					u = t[4]*(float32(x)+adjustX) + t[5]
+
+					color = filter.Interpolate(u, y)
+
+					i := resultImg.PixOffset(y, x)
+					resultImg.Pix[i+0] = uint8(color.R >> 8)
+					resultImg.Pix[i+1] = uint8(color.R)
+					resultImg.Pix[i+2] = uint8(color.G >> 8)
+					resultImg.Pix[i+3] = uint8(color.G)
+					resultImg.Pix[i+4] = uint8(color.B >> 8)
+					resultImg.Pix[i+5] = uint8(color.B)
+					resultImg.Pix[i+6] = uint8(color.A >> 8)
+					resultImg.Pix[i+7] = uint8(color.A)
+				}
+			}
+			c <- 1
+		}(image.Rect(b.Min.X, b.Min.Y+i*(b.Dy())/n, b.Max.X, b.Min.Y+(i+1)*(b.Dy())/n), c)
+
+	}
+
+	for i := 0; i < n; i++ {
+		<-c
+	}
+
+	return resultImg
 }
 
 // Calculate scaling factors using old and new image dimensions.

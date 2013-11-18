@@ -42,13 +42,13 @@ type filterModel struct {
 
 	// instead of blurring an image before downscaling to avoid aliasing,
 	// the filter is scaled by a factor which leads to a similar effect
-	factor [2]float32
+	factor float32
 
 	// for optimized access to image points
 	converter
 
-	// temporaries used by Interpolate
-	tempRow, tempCol []colorArray
+	// temporary used by Interpolate
+	tempRow []colorArray
 }
 
 func (f *filterModel) convolution1d(x float32, p []colorArray, factor float32) colorArray {
@@ -72,20 +72,15 @@ func (f *filterModel) convolution1d(x float32, p []colorArray, factor float32) c
 	return c
 }
 
-func (f *filterModel) Interpolate(x, y float32) color.RGBA64 {
-	xf, yf := int(x)-len(f.tempRow)/2+1, int(y)-len(f.tempCol)/2+1
-	x -= float32(xf)
-	y -= float32(yf)
+func (f *filterModel) Interpolate(u float32, y int) color.RGBA64 {
+	uf := int(u) - len(f.tempRow)/2 + 1
+	u -= float32(uf)
 
-	for i := range f.tempCol {
-		for j := range f.tempRow {
-			f.tempRow[j] = f.at(xf+j, yf+i)
-		}
-
-		f.tempCol[i] = f.convolution1d(x, f.tempRow, f.factor[0])
+	for i := range f.tempRow {
+		f.tempRow[i] = f.at(uf+i, y)
 	}
 
-	c := f.convolution1d(y, f.tempCol, f.factor[1])
+	c := f.convolution1d(u, f.tempRow, f.factor)
 	return color.RGBA64{
 		clampToUint16(c[0]),
 		clampToUint16(c[1]),
@@ -96,46 +91,45 @@ func (f *filterModel) Interpolate(x, y float32) color.RGBA64 {
 
 // createFilter tries to find an optimized converter for the given input image
 // and initializes all filterModel members to their defaults
-func createFilter(img image.Image, factor [2]float32, size int, kernel func(float32) float32) (f Filter) {
-	sizeX := size * (int(math.Ceil(float64(factor[0]))))
-	sizeY := size * (int(math.Ceil(float64(factor[1]))))
+func createFilter(img image.Image, factor float32, size int, kernel func(float32) float32) (f Filter) {
+	sizeX := size * (int(math.Ceil(float64(factor))))
 
 	switch img.(type) {
 	default:
 		f = &filterModel{
 			kernel, factor,
 			&genericConverter{img},
-			make([]colorArray, sizeX), make([]colorArray, sizeY),
+			make([]colorArray, sizeX),
 		}
 	case *image.RGBA:
 		f = &filterModel{
 			kernel, factor,
 			&rgbaConverter{img.(*image.RGBA)},
-			make([]colorArray, sizeX), make([]colorArray, sizeY),
+			make([]colorArray, sizeX),
 		}
 	case *image.RGBA64:
 		f = &filterModel{
 			kernel, factor,
 			&rgba64Converter{img.(*image.RGBA64)},
-			make([]colorArray, sizeX), make([]colorArray, sizeY),
+			make([]colorArray, sizeX),
 		}
 	case *image.Gray:
 		f = &filterModel{
 			kernel, factor,
 			&grayConverter{img.(*image.Gray)},
-			make([]colorArray, sizeX), make([]colorArray, sizeY),
+			make([]colorArray, sizeX),
 		}
 	case *image.Gray16:
 		f = &filterModel{
 			kernel, factor,
 			&gray16Converter{img.(*image.Gray16)},
-			make([]colorArray, sizeX), make([]colorArray, sizeY),
+			make([]colorArray, sizeX),
 		}
 	case *image.YCbCr:
 		f = &filterModel{
 			kernel, factor,
 			&ycbcrConverter{img.(*image.YCbCr)},
-			make([]colorArray, sizeX), make([]colorArray, sizeY),
+			make([]colorArray, sizeX),
 		}
 	}
 
@@ -172,7 +166,7 @@ func tableKernel(kernel func(float32) float32, tableSize int,
 }
 
 // Nearest-neighbor interpolation
-func NearestNeighbor(img image.Image, factor [2]float32) Filter {
+func NearestNeighbor(img image.Image, factor float32) Filter {
 	return createFilter(img, factor, 2, func(x float32) (y float32) {
 		if x >= -0.5 && x < 0.5 {
 			y = 1
@@ -185,7 +179,7 @@ func NearestNeighbor(img image.Image, factor [2]float32) Filter {
 }
 
 // Bilinear interpolation
-func Bilinear(img image.Image, factor [2]float32) Filter {
+func Bilinear(img image.Image, factor float32) Filter {
 	return createFilter(img, factor, 2, func(x float32) (y float32) {
 		absX := float32(math.Abs(float64(x)))
 		if absX <= 1 {
@@ -199,12 +193,12 @@ func Bilinear(img image.Image, factor [2]float32) Filter {
 }
 
 // Bicubic interpolation (with cubic hermite spline)
-func Bicubic(img image.Image, factor [2]float32) Filter {
+func Bicubic(img image.Image, factor float32) Filter {
 	return createFilter(img, factor, 4, splineKernel(0, 0.5))
 }
 
 // Mitchell-Netravali interpolation
-func MitchellNetravali(img image.Image, factor [2]float32) Filter {
+func MitchellNetravali(img image.Image, factor float32) Filter {
 	return createFilter(img, factor, 4, splineKernel(1.0/3.0, 1.0/3.0))
 }
 
@@ -245,25 +239,25 @@ func lanczosKernel(a uint) func(float32) float32 {
 const lanczosTableSize = 300
 
 // Lanczos interpolation (a=2)
-func Lanczos2(img image.Image, factor [2]float32) Filter {
+func Lanczos2(img image.Image, factor float32) Filter {
 	return createFilter(img, factor, 4, lanczosKernel(2))
 }
 
 // Lanczos interpolation (a=2) using a look-up table
 // to speed up computation
-func Lanczos2Lut(img image.Image, factor [2]float32) Filter {
+func Lanczos2Lut(img image.Image, factor float32) Filter {
 	return createFilter(img, factor, 4,
 		tableKernel(lanczosKernel(2), lanczosTableSize, 2.0))
 }
 
 // Lanczos interpolation (a=3)
-func Lanczos3(img image.Image, factor [2]float32) Filter {
+func Lanczos3(img image.Image, factor float32) Filter {
 	return createFilter(img, factor, 6, lanczosKernel(3))
 }
 
 // Lanczos interpolation (a=3) using a look-up table
 // to speed up computation
-func Lanczos3Lut(img image.Image, factor [2]float32) Filter {
+func Lanczos3Lut(img image.Image, factor float32) Filter {
 	return createFilter(img, factor, 6,
 		tableKernel(lanczosKernel(3), lanczosTableSize, 3.0))
 }
