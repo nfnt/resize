@@ -63,13 +63,13 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 			filter := interp(img, float32(clampFactor(scaleX)))
 			var u float32
 			var color color.RGBA64
-			for y := b.Min.X; y < b.Max.X; y++ {
-				for x := b.Min.Y; x < b.Max.Y; x++ {
-					u = scaleX*(float32(x)+adjust) + float32(oldBounds.Min.X)
+			for y := b.Min.Y; y < b.Max.Y; y++ {
+				for x := b.Min.X; x < b.Max.X; x++ {
+					u = scaleX*(float32(y)+adjust) + float32(oldBounds.Min.X)
 
-					color = filter.Interpolate(u, y)
+					color = filter.Interpolate(u, x)
 
-					i := tempImg.PixOffset(y, x)
+					i := tempImg.PixOffset(x, y)
 					tempImg.Pix[i+0] = uint8(color.R >> 8)
 					tempImg.Pix[i+1] = uint8(color.R)
 					tempImg.Pix[i+2] = uint8(color.G >> 8)
@@ -97,13 +97,13 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 			filter := interp(tempImg, float32(clampFactor(scaleY)))
 			var u float32
 			var color color.RGBA64
-			for y := b.Min.X; y < b.Max.X; y++ {
-				for x := b.Min.Y; x < b.Max.Y; x++ {
-					u = scaleY*(float32(x)+adjust) + float32(oldBounds.Min.Y)
+			for y := b.Min.Y; y < b.Max.Y; y++ {
+				for x := b.Min.X; x < b.Max.X; x++ {
+					u = scaleY*(float32(y)+adjust) + float32(oldBounds.Min.Y)
 
-					color = filter.Interpolate(u, y)
+					color = filter.Interpolate(u, x)
 
-					i := resultImg.PixOffset(y, x)
+					i := resultImg.PixOffset(x, y)
 					resultImg.Pix[i+0] = uint8(color.R >> 8)
 					resultImg.Pix[i+1] = uint8(color.R)
 					resultImg.Pix[i+2] = uint8(color.G >> 8)
