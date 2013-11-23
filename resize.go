@@ -90,7 +90,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 
 	resultImg := image.NewRGBA64(image.Rect(0, 0, int(0.7+oldWidth/scaleX), int(0.7+oldHeight/scaleY)))
 	b = resultImg.Bounds()
-	adjust = 0.5 * ((oldWidth-1.0)/scaleY - float32(b.Dx()-1))
+	adjust = 0.5 * ((oldHeight-1.0)/scaleY - float32(b.Dy()-1))
 
 	for i := 0; i < n; i++ {
 		go func(b image.Rectangle, c chan int) {
