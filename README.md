@@ -30,6 +30,12 @@ If either `width` or `height` is set to 0, it will be set to an aspect ratio pre
 resize.Resize(width, height uint, img image.Image, interp resize.InterpolationFunction) image.Image 
 ```
 
+Crop resizes the original image and crop it to fit `width` and `height`
+
+```go
+resize.Crop(width, height uint, img image.Image, interp resize.InterpolationFunction) image.Image 
+```
+
 The provided interpolation functions are (from fast to slow execution time)
 
 - `NearestNeighbor`: [Nearest-neighbor interpolation](http://en.wikipedia.org/wiki/Nearest-neighbor_interpolation)
