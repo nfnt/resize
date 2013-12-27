@@ -44,7 +44,18 @@ The provided interpolation functions are (from fast to slow execution time)
 - `Lanczos2`: [Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=2
 - `Lanczos3`: [Lanczos resampling](http://en.wikipedia.org/wiki/Lanczos_resampling) with a=3
 
-Which of these methods gives the best results depends on your use case.
+Which of these methods gives the best results depends on your use case.  
+Just as a very rough comparison here are times each method takes to downsample (resize down) an 720p frame to 10px wide on a macbook pro with 2.3 GHz core i7 CPU :  
+***nearestneigh***:	810ms  
+**bilinear**:	905ms  
+**bicubic**:	3.9s  
+**MitchellNetravali**:	3.9s  
+**Lanczos2Lut**:	3.9s  
+**Lanczos2**:	9.1s  
+**Lanczos3Lut**:	9.0s  
+**Lanczos3**:	20.7s 
+
+
 
 Sample usage:
 
