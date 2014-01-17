@@ -43,94 +43,88 @@ func replicateBorder(x, y int, rect image.Rectangle) (xx, yy int) {
 // the idea is to speed up computation by providing optimized implementations
 // for different image types instead of relying on image.Image.At().
 type converter interface {
-	at(x, y int) colorArray
+	at(x, y int, color *colorArray)
 }
 
 type genericConverter struct {
 	src image.Image
 }
 
-func (c *genericConverter) at(x, y int) colorArray {
+func (c *genericConverter) at(x, y int, result *colorArray) {
 	r, g, b, a := c.src.At(replicateBorder(x, y, c.src.Bounds())).RGBA()
-	return colorArray{
-		float32(r),
-		float32(g),
-		float32(b),
-		float32(a),
-	}
+	result[0] = float32(r)
+	result[1] = float32(g)
+	result[2] = float32(b)
+	result[3] = float32(a)
+	return
 }
 
 type rgbaConverter struct {
 	src *image.RGBA
 }
 
-func (c *rgbaConverter) at(x, y int) colorArray {
+func (c *rgbaConverter) at(x, y int, result *colorArray) {
 	i := c.src.PixOffset(replicateBorder(x, y, c.src.Rect))
-	return colorArray{
-		float32(uint16(c.src.Pix[i+0])<<8 | uint16(c.src.Pix[i+0])),
-		float32(uint16(c.src.Pix[i+1])<<8 | uint16(c.src.Pix[i+1])),
-		float32(uint16(c.src.Pix[i+2])<<8 | uint16(c.src.Pix[i+2])),
-		float32(uint16(c.src.Pix[i+3])<<8 | uint16(c.src.Pix[i+3])),
-	}
+	result[0] = float32(uint16(c.src.Pix[i+0])<<8 | uint16(c.src.Pix[i+0]))
+	result[1] = float32(uint16(c.src.Pix[i+1])<<8 | uint16(c.src.Pix[i+1]))
+	result[2] = float32(uint16(c.src.Pix[i+2])<<8 | uint16(c.src.Pix[i+2]))
+	result[3] = float32(uint16(c.src.Pix[i+3])<<8 | uint16(c.src.Pix[i+3]))
+	return
 }
 
 type rgba64Converter struct {
 	src *image.RGBA64
 }
 
-func (c *rgba64Converter) at(x, y int) colorArray {
+func (c *rgba64Converter) at(x, y int, result *colorArray) {
 	i := c.src.PixOffset(replicateBorder(x, y, c.src.Rect))
-	return colorArray{
-		float32(uint16(c.src.Pix[i+0])<<8 | uint16(c.src.Pix[i+1])),
-		float32(uint16(c.src.Pix[i+2])<<8 | uint16(c.src.Pix[i+3])),
-		float32(uint16(c.src.Pix[i+4])<<8 | uint16(c.src.Pix[i+5])),
-		float32(uint16(c.src.Pix[i+6])<<8 | uint16(c.src.Pix[i+7])),
-	}
+	result[0] = float32(uint16(c.src.Pix[i+0])<<8 | uint16(c.src.Pix[i+1]))
+	result[1] = float32(uint16(c.src.Pix[i+2])<<8 | uint16(c.src.Pix[i+3]))
+	result[2] = float32(uint16(c.src.Pix[i+4])<<8 | uint16(c.src.Pix[i+5]))
+	result[3] = float32(uint16(c.src.Pix[i+6])<<8 | uint16(c.src.Pix[i+7]))
+	return
 }
 
 type grayConverter struct {
 	src *image.Gray
 }
 
-func (c *grayConverter) at(x, y int) colorArray {
+func (c *grayConverter) at(x, y int, result *colorArray) {
 	i := c.src.PixOffset(replicateBorder(x, y, c.src.Rect))
 	g := float32(uint16(c.src.Pix[i])<<8 | uint16(c.src.Pix[i]))
-	return colorArray{
-		g,
-		g,
-		g,
-		float32(0xffff),
-	}
+	result[0] = g
+	result[1] = g
+	result[2] = g
+	result[3] = float32(0xffff)
+	return
 }
 
 type gray16Converter struct {
 	src *image.Gray16
 }
 
-func (c *gray16Converter) at(x, y int) colorArray {
+func (c *gray16Converter) at(x, y int, result *colorArray) {
 	i := c.src.PixOffset(replicateBorder(x, y, c.src.Rect))
 	g := float32(uint16(c.src.Pix[i+0])<<8 | uint16(c.src.Pix[i+1]))
-	return colorArray{
-		g,
-		g,
-		g,
-		float32(0xffff),
-	}
+	result[0] = g
+	result[1] = g
+	result[2] = g
+	result[3] = float32(0xffff)
+	return
 }
 
 type ycbcrConverter struct {
 	src *image.YCbCr
 }
 
-func (c *ycbcrConverter) at(x, y int) colorArray {
+func (c *ycbcrConverter) at(x, y int, result *colorArray) {
 	xx, yy := replicateBorder(x, y, c.src.Rect)
 	yi := c.src.YOffset(xx, yy)
 	ci := c.src.COffset(xx, yy)
 	r, g, b := color.YCbCrToRGB(c.src.Y[yi], c.src.Cb[ci], c.src.Cr[ci])
-	return colorArray{
-		float32(uint16(r) * 0x101),
-		float32(uint16(g) * 0x101),
-		float32(uint16(b) * 0x101),
-		float32(0xffff),
-	}
+	result[0] = float32(uint16(r) * 0x101)
+	result[1] = float32(uint16(g) * 0x101)
+	result[2] = float32(uint16(b) * 0x101)
+	result[3] = float32(0xffff)
+	return
 }

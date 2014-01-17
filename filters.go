@@ -51,10 +51,9 @@ type filterModel struct {
 	tempRow []colorArray
 }
 
-func (f *filterModel) convolution1d(x float32, p []colorArray, factor float32) colorArray {
+func (f *filterModel) convolution1d(x float32, p []colorArray, factor float32) (c colorArray) {
 	var k float32
 	var sum float32 = 0
-	c := colorArray{0.0, 0.0, 0.0, 0.0}
 
 	for j := range p {
 		k = f.kernel((x - float32(j)) / factor)
@@ -69,7 +68,7 @@ func (f *filterModel) convolution1d(x float32, p []colorArray, factor float32) c
 		c[i] = c[i] / sum
 	}
 
-	return c
+	return
 }
 
 func (f *filterModel) Interpolate(u float32, y int) color.RGBA64 {
@@ -77,7 +76,7 @@ func (f *filterModel) Interpolate(u float32, y int) color.RGBA64 {
 	u -= float32(uf)
 
 	for i := range f.tempRow {
-		f.tempRow[i] = f.at(uf+i, y)
+		f.at(uf+i, y, &f.tempRow[i])
 	}
 
 	c := f.convolution1d(u, f.tempRow, f.factor)
