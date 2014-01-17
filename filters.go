@@ -42,7 +42,7 @@ type filterModel struct {
 
 	// instead of blurring an image before downscaling to avoid aliasing,
 	// the filter is scaled by a factor which leads to a similar effect
-	factor float32
+	factorInv float32
 
 	// for optimized access to image points
 	converter
@@ -51,12 +51,12 @@ type filterModel struct {
 	tempRow []colorArray
 }
 
-func (f *filterModel) convolution1d(x float32, p []colorArray, factor float32) (c colorArray) {
+func (f *filterModel) convolution1d(x float32, p []colorArray) (c colorArray) {
 	var k float32
 	var sum float32 = 0
 
 	for j := range p {
-		k = f.kernel((x - float32(j)) / factor)
+		k = f.kernel((x - float32(j)) * f.factorInv)
 		sum += k
 		for i := range c {
 			c[i] += p[j][i] * k
@@ -79,7 +79,7 @@ func (f *filterModel) Interpolate(u float32, y int) color.RGBA64 {
 		f.at(uf+i, y, &f.tempRow[i])
 	}
 
-	c := f.convolution1d(u, f.tempRow, f.factor)
+	c := f.convolution1d(u, f.tempRow)
 	return color.RGBA64{
 		clampToUint16(c[0]),
 		clampToUint16(c[1]),
@@ -96,37 +96,37 @@ func createFilter(img image.Image, factor float32, size int, kernel func(float32
 	switch img.(type) {
 	default:
 		f = &filterModel{
-			kernel, factor,
+			kernel, 1. / factor,
 			&genericConverter{img},
 			make([]colorArray, sizeX),
 		}
 	case *image.RGBA:
 		f = &filterModel{
-			kernel, factor,
+			kernel, 1. / factor,
 			&rgbaConverter{img.(*image.RGBA)},
 			make([]colorArray, sizeX),
 		}
 	case *image.RGBA64:
 		f = &filterModel{
-			kernel, factor,
+			kernel, 1. / factor,
 			&rgba64Converter{img.(*image.RGBA64)},
 			make([]colorArray, sizeX),
 		}
 	case *image.Gray:
 		f = &filterModel{
-			kernel, factor,
+			kernel, 1. / factor,
 			&grayConverter{img.(*image.Gray)},
 			make([]colorArray, sizeX),
 		}
 	case *image.Gray16:
 		f = &filterModel{
-			kernel, factor,
+			kernel, 1. / factor,
 			&gray16Converter{img.(*image.Gray16)},
 			make([]colorArray, sizeX),
 		}
 	case *image.YCbCr:
 		f = &filterModel{
-			kernel, factor,
+			kernel, 1. / factor,
 			&ycbcrConverter{img.(*image.YCbCr)},
 			make([]colorArray, sizeX),
 		}
