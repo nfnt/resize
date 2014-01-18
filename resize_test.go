@@ -78,3 +78,47 @@ func Benchmark_Reduction(b *testing.B) {
 	}
 	m.At(0, 0)
 }
+
+// Benchmark resize of 16 MPix jpeg image to 800px width.
+func jpegThumb(b *testing.B, interp InterpolationFunction) {
+	input := image.NewYCbCr(image.Rect(0, 0, 4896, 3264), image.YCbCrSubsampleRatio422)
+
+	var output image.Image
+	for i := 0; i < b.N; i++ {
+		output = Resize(800, 0, input, interp)
+	}
+
+	output.At(0, 0)
+}
+
+func Benchmark_LargeJpegThumbNearestNeighbor(b *testing.B) {
+	jpegThumb(b, NearestNeighbor)
+}
+
+func Benchmark_LargeJpegThumbBilinear(b *testing.B) {
+	jpegThumb(b, Bilinear)
+}
+
+func Benchmark_LargeJpegThumbBicubic(b *testing.B) {
+	jpegThumb(b, Bicubic)
+}
+
+func Benchmark_LargeJpegThumbMitchellNetravali(b *testing.B) {
+	jpegThumb(b, MitchellNetravali)
+}
+
+func Benchmark_LargeJpegThumbLanczos2Lut(b *testing.B) {
+	jpegThumb(b, Lanczos2Lut)
+}
+
+func Benchmark_LargeJpegThumbLanczos2(b *testing.B) {
+	jpegThumb(b, Lanczos2)
+}
+
+func Benchmark_LargeJpegThumbLanczos3Lut(b *testing.B) {
+	jpegThumb(b, Lanczos3Lut)
+}
+
+func Benchmark_LargeJpegThumbLanczos3(b *testing.B) {
+	jpegThumb(b, Lanczos3)
+}
