@@ -61,14 +61,6 @@ func Benchmark_BigResizeLanczos3(b *testing.B) {
 	m.At(0, 0)
 }
 
-func Benchmark_BigResizeLanczos3Lut(b *testing.B) {
-	var m image.Image
-	for i := 0; i < b.N; i++ {
-		m = Resize(1000, 1000, img, Lanczos3Lut)
-	}
-	m.At(0, 0)
-}
-
 func Benchmark_Reduction(b *testing.B) {
 	largeImg := image.NewRGBA(image.Rect(0, 0, 1000, 1000))
 
@@ -107,16 +99,8 @@ func Benchmark_LargeJpegThumbMitchellNetravali(b *testing.B) {
 	jpegThumb(b, MitchellNetravali)
 }
 
-func Benchmark_LargeJpegThumbLanczos2Lut(b *testing.B) {
-	jpegThumb(b, Lanczos2Lut)
-}
-
 func Benchmark_LargeJpegThumbLanczos2(b *testing.B) {
 	jpegThumb(b, Lanczos2)
-}
-
-func Benchmark_LargeJpegThumbLanczos3Lut(b *testing.B) {
-	jpegThumb(b, Lanczos3Lut)
 }
 
 func Benchmark_LargeJpegThumbLanczos3(b *testing.B) {

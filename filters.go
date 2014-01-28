@@ -156,35 +156,6 @@ func createFilter(img image.Image, factor float32, size int, kernel func(float32
 	return
 }
 
-// Return a filter kernel that performs nearly identically to the provided
-// kernel, but generates and uses a precomputed table rather than executing
-// the kernel for each evaluation. The table is generated with tableSize
-// values that cover the kernal domain from -maxX to +maxX. The input kernel
-// is assumed to be symmetrical around 0, so the table only includes values
-// from 0 to maxX.
-func tableKernel(kernel func(float32) float32, tableSize int,
-	maxX float32) func(float32) float32 {
-
-	// precompute an array of filter coefficients
-	weights := make([]float32, tableSize+1)
-	for i := range weights {
-		weights[i] = kernel(maxX * float32(i) / float32(tableSize))
-	}
-	weights[tableSize] = 0.0
-
-	return func(x float32) float32 {
-		if x < 0.0 {
-			x = -x
-		}
-		indf := x / maxX * float32(tableSize)
-		ind := int(indf)
-		if ind >= tableSize {
-			return 0.0
-		}
-		return weights[ind] + (weights[ind+1]-weights[ind])*(indf-float32(ind))
-	}
-}
-
 // Nearest-neighbor interpolation
 func NearestNeighbor(img image.Image, factor float32) Filter {
 	return createFilter(img, factor, 2, func(x float32) (y float32) {
@@ -263,21 +234,7 @@ func Lanczos2(img image.Image, factor float32) Filter {
 	return createFilter(img, factor, 4, lanczosKernel(2))
 }
 
-// Lanczos interpolation (a=2) using a look-up table
-// to speed up computation
-func Lanczos2Lut(img image.Image, factor float32) Filter {
-	return createFilter(img, factor, 4,
-		tableKernel(lanczosKernel(2), lanczosTableSize, 2.0))
-}
-
 // Lanczos interpolation (a=3)
 func Lanczos3(img image.Image, factor float32) Filter {
 	return createFilter(img, factor, 6, lanczosKernel(3))
-}
-
-// Lanczos interpolation (a=3) using a look-up table
-// to speed up computation
-func Lanczos3Lut(img image.Image, factor float32) Filter {
-	return createFilter(img, factor, 6,
-		tableKernel(lanczosKernel(3), lanczosTableSize, 3.0))
 }
