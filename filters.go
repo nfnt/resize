@@ -65,7 +65,7 @@ func (f *filterModel) SetKernelWeights(u float32) {
 	}
 }
 
-func (f *filterModel) convolution1d(x float32) (c colorArray) {
+func (f *filterModel) convolution1d() (c colorArray) {
 	for j := range f.tempRow {
 		for i := range c {
 			c[i] += f.tempRow[j][i] * f.kernelWeight[j]
@@ -88,7 +88,7 @@ func (f *filterModel) Interpolate(u float32, y int) color.RGBA64 {
 		f.at(uf+i, y, &f.tempRow[i])
 	}
 
-	c := f.convolution1d(u)
+	c := f.convolution1d()
 	return color.RGBA64{
 		clampToUint16(c[0]),
 		clampToUint16(c[1]),
@@ -226,8 +226,6 @@ func lanczosKernel(a uint) func(float32) float32 {
 		return
 	}
 }
-
-const lanczosTableSize = 300
 
 // Lanczos interpolation (a=2)
 func Lanczos2(img image.Image, factor float32) Filter {
