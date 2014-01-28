@@ -49,23 +49,32 @@ type filterModel struct {
 
 	// temporary used by Interpolate
 	tempRow []colorArray
+
+	kernelWeight []float32
+	weightSum    float32
 }
 
-func (f *filterModel) convolution1d(x float32, p []colorArray) (c colorArray) {
-	var k float32
-	var sum float32 = 0
+func (f *filterModel) SetKernelWeights(u float32) {
+	uf := int(u) - len(f.tempRow)/2 + 1
+	u -= float32(uf)
+	f.weightSum = 0
 
-	for j := range p {
-		k = f.kernel((x - float32(j)) * f.factorInv)
-		sum += k
+	for j := range f.tempRow {
+		f.kernelWeight[j] = f.kernel((u - float32(j)) * f.factorInv)
+		f.weightSum += f.kernelWeight[j]
+	}
+}
+
+func (f *filterModel) convolution1d(x float32) (c colorArray) {
+	for j := range f.tempRow {
 		for i := range c {
-			c[i] += p[j][i] * k
+			c[i] += f.tempRow[j][i] * f.kernelWeight[j]
 		}
 	}
 
 	// normalize values
 	for i := range c {
-		c[i] = c[i] / sum
+		c[i] = c[i] / f.weightSum
 	}
 
 	return
@@ -79,7 +88,7 @@ func (f *filterModel) Interpolate(u float32, y int) color.RGBA64 {
 		f.at(uf+i, y, &f.tempRow[i])
 	}
 
-	c := f.convolution1d(u, f.tempRow)
+	c := f.convolution1d(u)
 	return color.RGBA64{
 		clampToUint16(c[0]),
 		clampToUint16(c[1]),
@@ -99,36 +108,48 @@ func createFilter(img image.Image, factor float32, size int, kernel func(float32
 			kernel, 1. / factor,
 			&genericConverter{img},
 			make([]colorArray, sizeX),
+			make([]float32, sizeX),
+			0,
 		}
 	case *image.RGBA:
 		f = &filterModel{
 			kernel, 1. / factor,
 			&rgbaConverter{img.(*image.RGBA)},
 			make([]colorArray, sizeX),
+			make([]float32, sizeX),
+			0,
 		}
 	case *image.RGBA64:
 		f = &filterModel{
 			kernel, 1. / factor,
 			&rgba64Converter{img.(*image.RGBA64)},
 			make([]colorArray, sizeX),
+			make([]float32, sizeX),
+			0,
 		}
 	case *image.Gray:
 		f = &filterModel{
 			kernel, 1. / factor,
 			&grayConverter{img.(*image.Gray)},
 			make([]colorArray, sizeX),
+			make([]float32, sizeX),
+			0,
 		}
 	case *image.Gray16:
 		f = &filterModel{
 			kernel, 1. / factor,
 			&gray16Converter{img.(*image.Gray16)},
 			make([]colorArray, sizeX),
+			make([]float32, sizeX),
+			0,
 		}
 	case *image.YCbCr:
 		f = &filterModel{
 			kernel, 1. / factor,
 			&ycbcrConverter{img.(*image.YCbCr)},
 			make([]colorArray, sizeX),
+			make([]float32, sizeX),
+			0,
 		}
 	}
 

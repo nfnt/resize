@@ -32,6 +32,7 @@ import (
 
 // Filter can interpolate at points (x,y)
 type Filter interface {
+	SetKernelWeights(u float32)
 	Interpolate(u float32, y int) color.RGBA64
 }
 
@@ -87,11 +88,10 @@ func resizeSlice(input image.Image, output *image.RGBA64, interp InterpolationFu
 	var u float32
 	var color color.RGBA64
 	for y := slice.Min.Y; y < slice.Max.Y; y++ {
+		u = scale*(float32(y)+adjust) + offset
+		filter.SetKernelWeights(u)
 		for x := slice.Min.X; x < slice.Max.X; x++ {
-			u = scale*(float32(y)+adjust) + offset
-
 			color = filter.Interpolate(u, x)
-
 			i := output.PixOffset(x, y)
 			output.Pix[i+0] = uint8(color.R >> 8)
 			output.Pix[i+1] = uint8(color.R)
