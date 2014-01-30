@@ -42,34 +42,42 @@ type filterModel struct {
 
 	// instead of blurring an image before downscaling to avoid aliasing,
 	// the filter is scaled by a factor which leads to a similar effect
-	factor float32
+	factorInv float32
 
 	// for optimized access to image points
 	converter
 
 	// temporary used by Interpolate
 	tempRow []colorArray
+
+	kernelWeight []float32
+	weightSum    float32
 }
 
-func (f *filterModel) convolution1d(x float32, p []colorArray, factor float32) colorArray {
-	var k float32
-	var sum float32 = 0
-	c := colorArray{0.0, 0.0, 0.0, 0.0}
+func (f *filterModel) SetKernelWeights(u float32) {
+	uf := int(u) - len(f.tempRow)/2 + 1
+	u -= float32(uf)
+	f.weightSum = 0
 
-	for j := range p {
-		k = f.kernel((x - float32(j)) / factor)
-		sum += k
+	for j := range f.tempRow {
+		f.kernelWeight[j] = f.kernel((u - float32(j)) * f.factorInv)
+		f.weightSum += f.kernelWeight[j]
+	}
+}
+
+func (f *filterModel) convolution1d() (c colorArray) {
+	for j := range f.tempRow {
 		for i := range c {
-			c[i] += p[j][i] * k
+			c[i] += f.tempRow[j][i] * f.kernelWeight[j]
 		}
 	}
 
 	// normalize values
 	for i := range c {
-		c[i] = c[i] / sum
+		c[i] = c[i] / f.weightSum
 	}
 
-	return c
+	return
 }
 
 func (f *filterModel) Interpolate(u float32, y int) color.RGBA64 {
@@ -77,10 +85,10 @@ func (f *filterModel) Interpolate(u float32, y int) color.RGBA64 {
 	u -= float32(uf)
 
 	for i := range f.tempRow {
-		f.tempRow[i] = f.at(uf+i, y)
+		f.at(uf+i, y, &f.tempRow[i])
 	}
 
-	c := f.convolution1d(u, f.tempRow, f.factor)
+	c := f.convolution1d()
 	return color.RGBA64{
 		clampToUint16(c[0]),
 		clampToUint16(c[1]),
@@ -97,72 +105,55 @@ func createFilter(img image.Image, factor float32, size int, kernel func(float32
 	switch img.(type) {
 	default:
 		f = &filterModel{
-			kernel, factor,
+			kernel, 1. / factor,
 			&genericConverter{img},
 			make([]colorArray, sizeX),
+			make([]float32, sizeX),
+			0,
 		}
 	case *image.RGBA:
 		f = &filterModel{
-			kernel, factor,
+			kernel, 1. / factor,
 			&rgbaConverter{img.(*image.RGBA)},
 			make([]colorArray, sizeX),
+			make([]float32, sizeX),
+			0,
 		}
 	case *image.RGBA64:
 		f = &filterModel{
-			kernel, factor,
+			kernel, 1. / factor,
 			&rgba64Converter{img.(*image.RGBA64)},
 			make([]colorArray, sizeX),
+			make([]float32, sizeX),
+			0,
 		}
 	case *image.Gray:
 		f = &filterModel{
-			kernel, factor,
+			kernel, 1. / factor,
 			&grayConverter{img.(*image.Gray)},
 			make([]colorArray, sizeX),
+			make([]float32, sizeX),
+			0,
 		}
 	case *image.Gray16:
 		f = &filterModel{
-			kernel, factor,
+			kernel, 1. / factor,
 			&gray16Converter{img.(*image.Gray16)},
 			make([]colorArray, sizeX),
+			make([]float32, sizeX),
+			0,
 		}
 	case *image.YCbCr:
 		f = &filterModel{
-			kernel, factor,
+			kernel, 1. / factor,
 			&ycbcrConverter{img.(*image.YCbCr)},
 			make([]colorArray, sizeX),
+			make([]float32, sizeX),
+			0,
 		}
 	}
 
 	return
-}
-
-// Return a filter kernel that performs nearly identically to the provided
-// kernel, but generates and uses a precomputed table rather than executing
-// the kernel for each evaluation. The table is generated with tableSize
-// values that cover the kernal domain from -maxX to +maxX. The input kernel
-// is assumed to be symmetrical around 0, so the table only includes values
-// from 0 to maxX.
-func tableKernel(kernel func(float32) float32, tableSize int,
-	maxX float32) func(float32) float32 {
-
-	// precompute an array of filter coefficients
-	weights := make([]float32, tableSize+1)
-	for i := range weights {
-		weights[i] = kernel(maxX * float32(i) / float32(tableSize))
-	}
-	weights[tableSize] = 0.0
-
-	return func(x float32) float32 {
-		if x < 0.0 {
-			x = -x
-		}
-		indf := x / maxX * float32(tableSize)
-		ind := int(indf)
-		if ind >= tableSize {
-			return 0.0
-		}
-		return weights[ind] + (weights[ind+1]-weights[ind])*(indf-float32(ind))
-	}
 }
 
 // Nearest-neighbor interpolation
@@ -236,28 +227,12 @@ func lanczosKernel(a uint) func(float32) float32 {
 	}
 }
 
-const lanczosTableSize = 300
-
 // Lanczos interpolation (a=2)
 func Lanczos2(img image.Image, factor float32) Filter {
 	return createFilter(img, factor, 4, lanczosKernel(2))
 }
 
-// Lanczos interpolation (a=2) using a look-up table
-// to speed up computation
-func Lanczos2Lut(img image.Image, factor float32) Filter {
-	return createFilter(img, factor, 4,
-		tableKernel(lanczosKernel(2), lanczosTableSize, 2.0))
-}
-
 // Lanczos interpolation (a=3)
 func Lanczos3(img image.Image, factor float32) Filter {
 	return createFilter(img, factor, 6, lanczosKernel(3))
-}
-
-// Lanczos interpolation (a=3) using a look-up table
-// to speed up computation
-func Lanczos3Lut(img image.Image, factor float32) Filter {
-	return createFilter(img, factor, 6,
-		tableKernel(lanczosKernel(3), lanczosTableSize, 3.0))
 }
