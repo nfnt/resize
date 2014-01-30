@@ -23,11 +23,16 @@ Import package with
 import "github.com/nfnt/resize"
 ```
 
-Resize creates a scaled image with new dimensions (`width`, `height`) using the interpolation function `interp`.
-If either `width` or `height` is set to 0, it will be set to an aspect ratio preserving value.
+The resize package provides 2 functions:
+
+* `resize.Resize` creates a scaled image with new dimensions (`width`, `height`) using the interpolation function `interp`.
+  If either `width` or `height` is set to 0, it will be set to an aspect ratio preserving value.
+* `resize.Thumbnail` downscales an image preserving its aspect ratio to the maximum dimensions (`maxWidth`, `maxHeight`).
+  It will return the original image if original sizes are smaller than the provided dimensions.
 
 ```go
-resize.Resize(width, height uint, img image.Image, interp resize.InterpolationFunction) image.Image 
+resize.Resize(width, height uint, img image.Image, interp resize.InterpolationFunction) image.Image
+resize.Thumbnail(maxWidth, maxHeight uint, img image.Image, interp resize.InterpolationFunction) image.Image
 ```
 
 The provided interpolation functions are (from fast to slow execution time)
