@@ -61,7 +61,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 	c := make(chan int, n)
 	for i := 0; i < n; i++ {
 		slice := image.Rect(b.Min.X, b.Min.Y+i*(b.Dy())/n, b.Max.X, b.Min.Y+(i+1)*(b.Dy())/n)
-		go resizeSlice(img, tempImg, interp, scaleX, adjust, float32(oldBounds.Min.X), slice, c)
+		go resizeSlice(img, tempImg, interp, scaleX, adjust, float32(oldBounds.Min.X), oldBounds.Min.Y, slice, c)
 	}
 	for i := 0; i < n; i++ {
 		<-c
@@ -73,7 +73,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 
 	for i := 0; i < n; i++ {
 		slice := image.Rect(b.Min.X, b.Min.Y+i*(b.Dy())/n, b.Max.X, b.Min.Y+(i+1)*(b.Dy())/n)
-		go resizeSlice(tempImg, resultImg, interp, scaleY, adjust, float32(oldBounds.Min.Y), slice, c)
+		go resizeSlice(tempImg, resultImg, interp, scaleY, adjust, 0, 0, slice, c)
 	}
 	for i := 0; i < n; i++ {
 		<-c
@@ -83,15 +83,15 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 }
 
 // Resize a rectangle image slice
-func resizeSlice(input image.Image, output *image.RGBA64, interp InterpolationFunction, scale, adjust, offset float32, slice image.Rectangle, c chan int) {
+func resizeSlice(input image.Image, output *image.RGBA64, interp InterpolationFunction, scale, adjust, xoffset float32, yoffset int, slice image.Rectangle, c chan int) {
 	filter := interp(input, float32(clampFactor(scale)))
 	var u float32
 	var color color.RGBA64
 	for y := slice.Min.Y; y < slice.Max.Y; y++ {
-		u = scale*(float32(y)+adjust) + offset
+		u = scale*(float32(y)+adjust) + xoffset
 		filter.SetKernelWeights(u)
 		for x := slice.Min.X; x < slice.Max.X; x++ {
-			color = filter.Interpolate(u, x)
+			color = filter.Interpolate(u, x+yoffset)
 			i := output.PixOffset(x, y)
 			output.Pix[i+0] = uint8(color.R >> 8)
 			output.Pix[i+1] = uint8(color.R)
