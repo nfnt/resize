@@ -26,124 +26,275 @@ package resize
 
 import (
 	"image"
-	"image/color"
 	"runtime"
+	"sync"
 )
 
-// Filter can interpolate at points (x,y)
-type Filter interface {
-	SetKernelWeights(u float32)
-	Interpolate(u float32, y int) color.RGBA64
+// An InterpolationFunction provides the parameters that describe an
+// interpolation kernel. It returns the number of samples to take
+// and the kernel function to use for sampling.
+type InterpolationFunction func() (int, func(float64) float64)
+
+// Nearest-neighbor interpolation
+func NearestNeighbor() (int, func(float64) float64) {
+	return 2, nearest
 }
 
-// InterpolationFunction return a Filter implementation
-// that operates on an image. Two factors
-// allow to scale the filter kernels in x- and y-direction
-// to prevent moire patterns.
-type InterpolationFunction func(image.Image, float32) Filter
+// Bilinear interpolation
+func Bilinear() (int, func(float64) float64) {
+	return 2, linear
+}
 
-// Resize an image to new width and height using the interpolation function interp.
+// Bicubic interpolation (with cubic hermite spline)
+func Bicubic() (int, func(float64) float64) {
+	return 4, cubic
+}
+
+// Mitchell-Netravali interpolation
+func MitchellNetravali() (int, func(float64) float64) {
+	return 4, mitchellnetravali
+}
+
+// Lanczos interpolation (a=2)
+func Lanczos2() (int, func(float64) float64) {
+	return 4, lanczos2
+}
+
+// Lanczos interpolation (a=3)
+func Lanczos3() (int, func(float64) float64) {
+	return 6, lanczos3
+}
+
+// values <1 will sharpen the image
+var blur = 1.0
+
+// Resize scales an image to new width and height using the interpolation function interp.
 // A new image with the given dimensions will be returned.
 // If one of the parameters width or height is set to 0, its size will be calculated so that
 // the aspect ratio is that of the originating image.
 // The resizing algorithm uses channels for parallel computation.
 func Resize(width, height uint, img image.Image, interp InterpolationFunction) image.Image {
-	oldBounds := img.Bounds()
-	oldWidth := float32(oldBounds.Dx())
-	oldHeight := float32(oldBounds.Dy())
-	scaleX, scaleY := calcFactors(width, height, oldWidth, oldHeight)
-
-	tempImg := image.NewRGBA64(image.Rect(0, 0, oldBounds.Dy(), int(0.7+oldWidth/scaleX)))
-	b := tempImg.Bounds()
-	adjust := 0.5 * ((oldWidth-1.0)/scaleX - float32(b.Dy()-1))
-
-	n := numJobs(b.Dy())
-	c := make(chan int, n)
-	for i := 0; i < n; i++ {
-		slice := image.Rect(b.Min.X, b.Min.Y+i*(b.Dy())/n, b.Max.X, b.Min.Y+(i+1)*(b.Dy())/n)
-		go resizeSlice(img, tempImg, interp, scaleX, adjust, float32(oldBounds.Min.X), oldBounds.Min.Y, slice, c)
+	scaleX, scaleY := calcFactors(width, height, float64(img.Bounds().Dx()), float64(img.Bounds().Dy()))
+	if width == 0 {
+		width = uint(0.7 + float64(img.Bounds().Dx())/scaleX)
 	}
-	for i := 0; i < n; i++ {
-		<-c
+	if height == 0 {
+		height = uint(0.7 + float64(img.Bounds().Dy())/scaleY)
 	}
 
-	resultImg := image.NewRGBA64(image.Rect(0, 0, int(0.7+oldWidth/scaleX), int(0.7+oldHeight/scaleY)))
-	b = resultImg.Bounds()
-	adjust = 0.5 * ((oldHeight-1.0)/scaleY - float32(b.Dy()-1))
+	taps, kernel := interp()
+	cpus := runtime.NumCPU()
+	wg := sync.WaitGroup{}
 
-	for i := 0; i < n; i++ {
-		slice := image.Rect(b.Min.X, b.Min.Y+i*(b.Dy())/n, b.Max.X, b.Min.Y+(i+1)*(b.Dy())/n)
-		go resizeSlice(tempImg, resultImg, interp, scaleY, adjust, 0, 0, slice, c)
-	}
-	for i := 0; i < n; i++ {
-		<-c
-	}
+	// Generic access to image.Image is slow in tight loops.
+	// The optimal access has to be determined from the concrete image type.
+	switch input := img.(type) {
+	case *image.RGBA:
+		// 8-bit precision
+		temp := image.NewRGBA(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
+		result := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
 
-	return resultImg
-}
-
-// Resize a rectangle image slice
-func resizeSlice(input image.Image, output *image.RGBA64, interp InterpolationFunction, scale, adjust, xoffset float32, yoffset int, slice image.Rectangle, c chan int) {
-	filter := interp(input, float32(clampFactor(scale)))
-	var u float32
-	var color color.RGBA64
-	for y := slice.Min.Y; y < slice.Max.Y; y++ {
-		u = scale*(float32(y)+adjust) + xoffset
-		filter.SetKernelWeights(u)
-		for x := slice.Min.X; x < slice.Max.X; x++ {
-			color = filter.Interpolate(u, x+yoffset)
-			i := output.PixOffset(x, y)
-			output.Pix[i+0] = uint8(color.R >> 8)
-			output.Pix[i+1] = uint8(color.R)
-			output.Pix[i+2] = uint8(color.G >> 8)
-			output.Pix[i+3] = uint8(color.G)
-			output.Pix[i+4] = uint8(color.B >> 8)
-			output.Pix[i+5] = uint8(color.B)
-			output.Pix[i+6] = uint8(color.A >> 8)
-			output.Pix[i+7] = uint8(color.A)
+		// horizontal filter, results in transposed temporary image
+		coeffs, filterLength := createWeights8(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX, kernel)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(temp, i, cpus).(*image.RGBA)
+			go func() {
+				defer wg.Done()
+				resizeRGBA(input, slice, scaleX, coeffs, filterLength)
+			}()
 		}
-	}
+		wg.Wait()
 
-	c <- 1
+		// horizontal filter on transposed image, result is not transposed
+		coeffs, filterLength = createWeights8(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY, kernel)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(result, i, cpus).(*image.RGBA)
+			go func() {
+				defer wg.Done()
+				resizeRGBA(temp, slice, scaleY, coeffs, filterLength)
+			}()
+		}
+		wg.Wait()
+		return result
+	case *image.YCbCr:
+		// 8-bit precision
+		// accessing the YCbCr arrays in a tight loop is slow.
+		// converting the image before filtering will improve performance.
+		inputAsRGBA := convertYCbCrToRGBA(input)
+		temp := image.NewRGBA(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
+		result := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
+
+		// horizontal filter, results in transposed temporary image
+		coeffs, filterLength := createWeights8(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX, kernel)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(temp, i, cpus).(*image.RGBA)
+			go func() {
+				defer wg.Done()
+				resizeRGBA(inputAsRGBA, slice, scaleX, coeffs, filterLength)
+			}()
+		}
+		wg.Wait()
+
+		// horizontal filter on transposed image, result is not transposed
+		coeffs, filterLength = createWeights8(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY, kernel)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(result, i, cpus).(*image.RGBA)
+			go func() {
+				defer wg.Done()
+				resizeRGBA(temp, slice, scaleY, coeffs, filterLength)
+			}()
+		}
+		wg.Wait()
+		return result
+	case *image.RGBA64:
+		// 16-bit precision
+		temp := image.NewRGBA64(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
+		result := image.NewRGBA64(image.Rect(0, 0, int(width), int(height)))
+
+		// horizontal filter, results in transposed temporary image
+		coeffs, filterLength := createWeights16(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX, kernel)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(temp, i, cpus).(*image.RGBA64)
+			go func() {
+				defer wg.Done()
+				resizeRGBA64(input, slice, scaleX, coeffs, filterLength)
+			}()
+		}
+		wg.Wait()
+
+		// horizontal filter on transposed image, result is not transposed
+		coeffs, filterLength = createWeights16(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY, kernel)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(result, i, cpus).(*image.RGBA64)
+			go func() {
+				defer wg.Done()
+				resizeGeneric(temp, slice, scaleY, coeffs, filterLength)
+			}()
+		}
+		wg.Wait()
+		return result
+	case *image.Gray:
+		// 8-bit precision
+		temp := image.NewGray(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
+		result := image.NewGray(image.Rect(0, 0, int(width), int(height)))
+
+		// horizontal filter, results in transposed temporary image
+		coeffs, filterLength := createWeights8(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX, kernel)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(temp, i, cpus).(*image.Gray)
+			go func() {
+				defer wg.Done()
+				resizeGray(input, slice, scaleX, coeffs, filterLength)
+			}()
+		}
+		wg.Wait()
+
+		// horizontal filter on transposed image, result is not transposed
+		coeffs, filterLength = createWeights8(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY, kernel)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(result, i, cpus).(*image.Gray)
+			go func() {
+				defer wg.Done()
+				resizeGray(temp, slice, scaleY, coeffs, filterLength)
+			}()
+		}
+		wg.Wait()
+		return result
+	case *image.Gray16:
+		// 16-bit precision
+		temp := image.NewGray16(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
+		result := image.NewGray16(image.Rect(0, 0, int(width), int(height)))
+
+		// horizontal filter, results in transposed temporary image
+		coeffs, filterLength := createWeights16(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX, kernel)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(temp, i, cpus).(*image.Gray16)
+			go func() {
+				defer wg.Done()
+				resizeGray16(input, slice, scaleX, coeffs, filterLength)
+			}()
+		}
+		wg.Wait()
+
+		// horizontal filter on transposed image, result is not transposed
+		coeffs, filterLength = createWeights16(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY, kernel)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(result, i, cpus).(*image.Gray16)
+			go func() {
+				defer wg.Done()
+				resizeGray16(temp, slice, scaleY, coeffs, filterLength)
+			}()
+		}
+		wg.Wait()
+		return result
+	default:
+		// 16-bit precision
+		temp := image.NewRGBA64(image.Rect(0, 0, img.Bounds().Dy(), int(width)))
+		result := image.NewRGBA64(image.Rect(0, 0, int(width), int(height)))
+
+		// horizontal filter, results in transposed temporary image
+		coeffs, filterLength := createWeights16(temp.Bounds().Dy(), img.Bounds().Min.X, taps, blur, scaleX, kernel)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(temp, i, cpus).(*image.RGBA64)
+			go func() {
+				defer wg.Done()
+				resizeGeneric(img, slice, scaleX, coeffs, filterLength)
+			}()
+		}
+		wg.Wait()
+
+		// horizontal filter on transposed image, result is not transposed
+		coeffs, filterLength = createWeights16(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY, kernel)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(result, i, cpus).(*image.RGBA64)
+			go func() {
+				defer wg.Done()
+				resizeRGBA64(temp, slice, scaleY, coeffs, filterLength)
+			}()
+		}
+		wg.Wait()
+		return result
+	}
 }
 
-// Calculate scaling factors using old and new image dimensions.
-func calcFactors(width, height uint, oldWidth, oldHeight float32) (scaleX, scaleY float32) {
+// Calculates scaling factors using old and new image dimensions.
+func calcFactors(width, height uint, oldWidth, oldHeight float64) (scaleX, scaleY float64) {
 	if width == 0 {
 		if height == 0 {
 			scaleX = 1.0
 			scaleY = 1.0
 		} else {
-			scaleY = oldHeight / float32(height)
+			scaleY = oldHeight / float64(height)
 			scaleX = scaleY
 		}
 	} else {
-		scaleX = oldWidth / float32(width)
+		scaleX = oldWidth / float64(width)
 		if height == 0 {
 			scaleY = scaleX
 		} else {
-			scaleY = oldHeight / float32(height)
+			scaleY = oldHeight / float64(height)
 		}
 	}
 	return
 }
 
-// Set filter scaling factor to avoid moire patterns.
-// This is only useful in case of downscaling (factor>1).
-func clampFactor(factor float32) float32 {
-	if factor < 1 {
-		factor = 1
-	}
-	return factor
+type imageWithSubImage interface {
+	image.Image
+	SubImage(image.Rectangle) image.Image
 }
 
-// Set number of parallel jobs
-// but prevent resize from doing too much work
-// if #CPUs > width
-func numJobs(d int) (n int) {
-	n = runtime.NumCPU()
-	if n > d {
-		n = d
-	}
-	return
+func makeSlice(img imageWithSubImage, i, n int) image.Image {
+	return img.SubImage(image.Rect(img.Bounds().Min.X, img.Bounds().Min.Y+i*img.Bounds().Dy()/n, img.Bounds().Max.X, img.Bounds().Min.Y+(i+1)*img.Bounds().Dy()/n))
 }

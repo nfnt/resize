@@ -17,222 +17,100 @@ THIS SOFTWARE.
 package resize
 
 import (
-	"image"
-	"image/color"
 	"math"
 )
 
-// restrict an input float32 to the range of uint16 values
-func clampToUint16(x float32) (y uint16) {
-	y = uint16(x)
-	if x < 0 {
-		y = 0
-	} else if x > float32(0xfffe) {
-		// "else if x > float32(0xffff)" will cause overflows!
-		y = 0xffff
+func nearest(in float64) float64 {
+	if in >= -0.5 && in < 0.5 {
+		return 1
 	}
-
-	return
+	return 0
 }
 
-// describe a resampling filter
-type filterModel struct {
-	// resampling is done by convolution with a (scaled) kernel
-	kernel func(float32) float32
-
-	// instead of blurring an image before downscaling to avoid aliasing,
-	// the filter is scaled by a factor which leads to a similar effect
-	factorInv float32
-
-	// for optimized access to image points
-	converter
-
-	// temporary used by Interpolate
-	tempRow []colorArray
-
-	kernelWeight []float32
-	weightSum    float32
+func linear(in float64) float64 {
+	in = math.Abs(in)
+	if in <= 1 {
+		return 1 - in
+	}
+	return 0
 }
 
-func (f *filterModel) SetKernelWeights(u float32) {
-	uf := int(u) - len(f.tempRow)/2 + 1
-	u -= float32(uf)
-	f.weightSum = 0
-
-	for j := range f.tempRow {
-		f.kernelWeight[j] = f.kernel((u - float32(j)) * f.factorInv)
-		f.weightSum += f.kernelWeight[j]
+func cubic(in float64) float64 {
+	in = math.Abs(in)
+	if in <= 1 {
+		return in*in*(1.5*in-2.5) + 1.0
 	}
+	if in <= 2 {
+		return in*(in*(2.5-0.5*in)-4.0) + 2.0
+	}
+	return 0
 }
 
-func (f *filterModel) convolution1d() (c colorArray) {
-	for j := range f.tempRow {
-		for i := range c {
-			c[i] += f.tempRow[j][i] * f.kernelWeight[j]
-		}
+func mitchellnetravali(in float64) float64 {
+	in = math.Abs(in)
+	if in <= 1 {
+		return (7.0*in*in*in - 12.0*in*in + 5.33333333333) * 0.16666666666
 	}
-
-	// normalize values
-	for i := range c {
-		c[i] = c[i] / f.weightSum
+	if in <= 2 {
+		return (-2.33333333333*in*in*in + 12.0*in*in - 20.0*in + 10.6666666667) * 0.16666666666
 	}
-
-	return
+	return 0
 }
 
-func (f *filterModel) Interpolate(u float32, y int) color.RGBA64 {
-	uf := int(u) - len(f.tempRow)/2 + 1
-	u -= float32(uf)
-
-	for i := range f.tempRow {
-		f.at(uf+i, y, &f.tempRow[i])
+func sinc(x float64) float64 {
+	x = math.Abs(x) * math.Pi
+	if x >= 1.220703e-4 {
+		return math.Sin(x) / x
 	}
-
-	c := f.convolution1d()
-	return color.RGBA64{
-		clampToUint16(c[0]),
-		clampToUint16(c[1]),
-		clampToUint16(c[2]),
-		clampToUint16(c[3]),
-	}
+	return 1
 }
 
-// createFilter tries to find an optimized converter for the given input image
-// and initializes all filterModel members to their defaults
-func createFilter(img image.Image, factor float32, size int, kernel func(float32) float32) (f Filter) {
-	sizeX := size * (int(math.Ceil(float64(factor))))
+func lanczos2(in float64) float64 {
+	if in > -2 && in < 2 {
+		return sinc(in) * sinc(in*0.5)
+	}
+	return 0
+}
 
-	switch img.(type) {
-	default:
-		f = &filterModel{
-			kernel, 1. / factor,
-			&genericConverter{img},
-			make([]colorArray, sizeX),
-			make([]float32, sizeX),
-			0,
-		}
-	case *image.RGBA:
-		f = &filterModel{
-			kernel, 1. / factor,
-			&rgbaConverter{img.(*image.RGBA)},
-			make([]colorArray, sizeX),
-			make([]float32, sizeX),
-			0,
-		}
-	case *image.RGBA64:
-		f = &filterModel{
-			kernel, 1. / factor,
-			&rgba64Converter{img.(*image.RGBA64)},
-			make([]colorArray, sizeX),
-			make([]float32, sizeX),
-			0,
-		}
-	case *image.Gray:
-		f = &filterModel{
-			kernel, 1. / factor,
-			&grayConverter{img.(*image.Gray)},
-			make([]colorArray, sizeX),
-			make([]float32, sizeX),
-			0,
-		}
-	case *image.Gray16:
-		f = &filterModel{
-			kernel, 1. / factor,
-			&gray16Converter{img.(*image.Gray16)},
-			make([]colorArray, sizeX),
-			make([]float32, sizeX),
-			0,
-		}
-	case *image.YCbCr:
-		f = &filterModel{
-			kernel, 1. / factor,
-			&ycbcrConverter{img.(*image.YCbCr)},
-			make([]colorArray, sizeX),
-			make([]float32, sizeX),
-			0,
+func lanczos3(in float64) float64 {
+	if in > -3 && in < 3 {
+		return sinc(in) * sinc(in*0.3333333333333333)
+	}
+	return 0
+}
+
+// range [-256,256]
+func createWeights8(dy, minx, filterLength int, blur, scale float64, kernel func(float64) float64) ([]int16, int) {
+	filterLength = filterLength * int(math.Max(math.Ceil(blur*scale), 1))
+	filterFactor := math.Min(1./(blur*scale), 1)
+
+	coeffs := make([]int16, dy*filterLength)
+	for y := 0; y < dy; y++ {
+		interpX := scale*(float64(y)+0.5) + float64(minx)
+		start := int(interpX) - filterLength/2 + 1
+		for i := 0; i < filterLength; i++ {
+			in := (interpX - float64(start) - float64(i)) * filterFactor
+			coeffs[y*filterLength+i] = int16(kernel(in) * 256)
 		}
 	}
 
-	return
+	return coeffs, filterLength
 }
 
-// Nearest-neighbor interpolation
-func NearestNeighbor(img image.Image, factor float32) Filter {
-	return createFilter(img, factor, 2, func(x float32) (y float32) {
-		if x >= -0.5 && x < 0.5 {
-			y = 1
-		} else {
-			y = 0
+// range [-65536,65536]
+func createWeights16(dy, minx, filterLength int, blur, scale float64, kernel func(float64) float64) ([]int32, int) {
+	filterLength = filterLength * int(math.Max(math.Ceil(blur*scale), 1))
+	filterFactor := math.Min(1./(blur*scale), 1)
+
+	coeffs := make([]int32, dy*filterLength)
+	for y := 0; y < dy; y++ {
+		interpX := scale*(float64(y)+0.5) + float64(minx)
+		start := int(interpX) - filterLength/2 + 1
+		for i := 0; i < filterLength; i++ {
+			in := (interpX - float64(start) - float64(i)) * filterFactor
+			coeffs[y*filterLength+i] = int32(kernel(in) * 65536)
 		}
-
-		return
-	})
-}
-
-// Bilinear interpolation
-func Bilinear(img image.Image, factor float32) Filter {
-	return createFilter(img, factor, 2, func(x float32) (y float32) {
-		absX := float32(math.Abs(float64(x)))
-		if absX <= 1 {
-			y = 1 - absX
-		} else {
-			y = 0
-		}
-
-		return
-	})
-}
-
-// Bicubic interpolation (with cubic hermite spline)
-func Bicubic(img image.Image, factor float32) Filter {
-	return createFilter(img, factor, 4, splineKernel(0, 0.5))
-}
-
-// Mitchell-Netravali interpolation
-func MitchellNetravali(img image.Image, factor float32) Filter {
-	return createFilter(img, factor, 4, splineKernel(1.0/3.0, 1.0/3.0))
-}
-
-func splineKernel(B, C float32) func(float32) float32 {
-	factorA := 2.0 - 1.5*B - C
-	factorB := -3.0 + 2.0*B + C
-	factorC := 1.0 - 1.0/3.0*B
-	factorD := -B/6.0 - C
-	factorE := B + 5.0*C
-	factorF := -2.0*B - 8.0*C
-	factorG := 4.0/3.0*B + 4.0*C
-	return func(x float32) (y float32) {
-		absX := float32(math.Abs(float64(x)))
-		if absX <= 1 {
-			y = absX*absX*(factorA*absX+factorB) + factorC
-		} else if absX <= 2 {
-			y = absX*(absX*(absX*factorD+factorE)+factorF) + factorG
-		} else {
-			y = 0
-		}
-
-		return
 	}
-}
 
-func lanczosKernel(a uint) func(float32) float32 {
-	return func(x float32) (y float32) {
-		if x > -float32(a) && x < float32(a) {
-			y = float32(Sinc(float64(x))) * float32(Sinc(float64(x/float32(a))))
-		} else {
-			y = 0
-		}
-
-		return
-	}
-}
-
-// Lanczos interpolation (a=2)
-func Lanczos2(img image.Image, factor float32) Filter {
-	return createFilter(img, factor, 4, lanczosKernel(2))
-}
-
-// Lanczos interpolation (a=3)
-func Lanczos3(img image.Image, factor float32) Filter {
-	return createFilter(img, factor, 6, lanczosKernel(3))
+	return coeffs, filterLength
 }

@@ -21,110 +21,236 @@ import (
 	"image/color"
 )
 
-type colorArray [4]float32
-
-func replicateBorder1d(x, min, max int) int {
-	if x < min {
-		x = min
-	} else if x >= max {
-		x = max - 1
+// Keep value in [0,255] range.
+func clampUint8(in int32) uint8 {
+	if in < 0 {
+		return 0
 	}
-
-	return x
+	if in > 255 {
+		return 255
+	}
+	return uint8(in)
 }
 
-func replicateBorder(x, y int, rect image.Rectangle) (xx, yy int) {
-	xx = replicateBorder1d(x, rect.Min.X, rect.Max.X)
-	yy = replicateBorder1d(y, rect.Min.Y, rect.Max.Y)
-	return
+// Keep value in [0,65535] range.
+func clampUint16(in int64) uint16 {
+	if in < 0 {
+		return 0
+	}
+	if in > 65535 {
+		return 65535
+	}
+	return uint16(in)
 }
 
-// converter allows to retrieve a colorArray for points of an image.
-// the idea is to speed up computation by providing optimized implementations
-// for different image types instead of relying on image.Image.At().
-type converter interface {
-	at(x, y int, color *colorArray)
+func resizeGeneric(in image.Image, out *image.RGBA64, scale float64, coeffs []int32, filterLength int) {
+	oldBounds := in.Bounds()
+	newBounds := out.Bounds()
+
+	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
+		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
+			interpX := scale*(float64(y)+0.5) + float64(oldBounds.Min.X)
+			start := int(interpX) - filterLength/2 + 1
+
+			var rgba [4]int64
+			var sum int64
+			for i := 0; i < filterLength; i++ {
+				xx := start + i
+				if xx < oldBounds.Min.X {
+					xx = oldBounds.Min.X
+				} else if xx >= oldBounds.Max.X {
+					xx = oldBounds.Max.X - 1
+				}
+
+				coeff := coeffs[(y-newBounds.Min.Y)*filterLength+i]
+				r, g, b, a := in.At(xx, x).RGBA()
+				rgba[0] += int64(coeff) * int64(r)
+				rgba[1] += int64(coeff) * int64(g)
+				rgba[2] += int64(coeff) * int64(b)
+				rgba[3] += int64(coeff) * int64(a)
+				sum += int64(coeff)
+			}
+
+			offset := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*8
+			value := clampUint16(rgba[0] / sum)
+			out.Pix[offset+0] = uint8(value >> 8)
+			out.Pix[offset+1] = uint8(value)
+			value = clampUint16(rgba[1] / sum)
+			out.Pix[offset+2] = uint8(value >> 8)
+			out.Pix[offset+3] = uint8(value)
+			value = clampUint16(rgba[2] / sum)
+			out.Pix[offset+4] = uint8(value >> 8)
+			out.Pix[offset+5] = uint8(value)
+			value = clampUint16(rgba[3] / sum)
+			out.Pix[offset+6] = uint8(value >> 8)
+			out.Pix[offset+7] = uint8(value)
+		}
+	}
 }
 
-type genericConverter struct {
-	src image.Image
+func resizeRGBA(in *image.RGBA, out *image.RGBA, scale float64, coeffs []int16, filterLength int) {
+	oldBounds := in.Bounds()
+	newBounds := out.Bounds()
+
+	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
+		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
+			interpX := scale*(float64(y)+0.5) + float64(oldBounds.Min.X)
+			start := int(interpX) - filterLength/2 + 1
+
+			var rgba [4]int32
+			var sum int32
+			for i := 0; i < filterLength; i++ {
+				xx := start + i
+				if xx < oldBounds.Min.X {
+					xx = oldBounds.Min.X
+				} else if xx >= oldBounds.Max.X {
+					xx = oldBounds.Max.X - 1
+				}
+
+				coeff := coeffs[(y-newBounds.Min.Y)*filterLength+i]
+				offset := (xx - oldBounds.Min.X) * 4
+				rgba[0] += int32(coeff) * int32(row[offset+0])
+				rgba[1] += int32(coeff) * int32(row[offset+1])
+				rgba[2] += int32(coeff) * int32(row[offset+2])
+				rgba[3] += int32(coeff) * int32(row[offset+3])
+				sum += int32(coeff)
+			}
+
+			offset := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*4
+			out.Pix[offset+0] = clampUint8(rgba[0] / sum)
+			out.Pix[offset+1] = clampUint8(rgba[1] / sum)
+			out.Pix[offset+2] = clampUint8(rgba[2] / sum)
+			out.Pix[offset+3] = clampUint8(rgba[3] / sum)
+		}
+	}
 }
 
-func (c *genericConverter) at(x, y int, result *colorArray) {
-	r, g, b, a := c.src.At(replicateBorder(x, y, c.src.Bounds())).RGBA()
-	result[0] = float32(r)
-	result[1] = float32(g)
-	result[2] = float32(b)
-	result[3] = float32(a)
-	return
+func resizeRGBA64(in *image.RGBA64, out *image.RGBA64, scale float64, coeffs []int32, filterLength int) {
+	oldBounds := in.Bounds()
+	newBounds := out.Bounds()
+
+	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
+		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
+			interpX := scale*(float64(y)+0.5) + float64(oldBounds.Min.X)
+			start := int(interpX) - filterLength/2 + 1
+
+			var rgba [4]int64
+			var sum int64
+			for i := 0; i < filterLength; i++ {
+				xx := start + i
+				if xx < oldBounds.Min.X {
+					xx = oldBounds.Min.X
+				} else if xx >= oldBounds.Max.X {
+					xx = oldBounds.Max.X - 1
+				}
+
+				coeff := coeffs[(y-newBounds.Min.Y)*filterLength+i]
+				offset := (xx - oldBounds.Min.X) * 8
+				rgba[0] += int64(coeff) * int64(uint16(row[offset+0])<<8|uint16(row[offset+1]))
+				rgba[1] += int64(coeff) * int64(uint16(row[offset+2])<<8|uint16(row[offset+3]))
+				rgba[2] += int64(coeff) * int64(uint16(row[offset+4])<<8|uint16(row[offset+5]))
+				rgba[3] += int64(coeff) * int64(uint16(row[offset+6])<<8|uint16(row[offset+7]))
+				sum += int64(coeff)
+			}
+
+			offset := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*8
+			value := clampUint16(rgba[0] / sum)
+			out.Pix[offset+0] = uint8(value >> 8)
+			out.Pix[offset+1] = uint8(value)
+			value = clampUint16(rgba[1] / sum)
+			out.Pix[offset+2] = uint8(value >> 8)
+			out.Pix[offset+3] = uint8(value)
+			value = clampUint16(rgba[2] / sum)
+			out.Pix[offset+4] = uint8(value >> 8)
+			out.Pix[offset+5] = uint8(value)
+			value = clampUint16(rgba[3] / sum)
+			out.Pix[offset+6] = uint8(value >> 8)
+			out.Pix[offset+7] = uint8(value)
+		}
+	}
 }
 
-type rgbaConverter struct {
-	src *image.RGBA
+func resizeGray(in *image.Gray, out *image.Gray, scale float64, coeffs []int16, filterLength int) {
+	oldBounds := in.Bounds()
+	newBounds := out.Bounds()
+
+	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
+		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
+			interpX := scale*(float64(y)+0.5) + float64(oldBounds.Min.X)
+			start := int(interpX) - filterLength/2 + 1
+
+			var gray int32
+			var sum int32
+			for i := 0; i < filterLength; i++ {
+				xx := start + i
+				if xx < oldBounds.Min.X {
+					xx = oldBounds.Min.X
+				} else if xx >= oldBounds.Max.X {
+					xx = oldBounds.Max.X - 1
+				}
+
+				coeff := coeffs[(y-newBounds.Min.Y)*filterLength+i]
+				offset := (xx - oldBounds.Min.X)
+				gray += int32(coeff) * int32(row[offset])
+				sum += int32(coeff)
+			}
+
+			offset := (y-newBounds.Min.Y)*out.Stride + (x - newBounds.Min.X)
+			out.Pix[offset] = clampUint8(gray / sum)
+		}
+	}
 }
 
-func (c *rgbaConverter) at(x, y int, result *colorArray) {
-	i := c.src.PixOffset(replicateBorder(x, y, c.src.Rect))
-	result[0] = float32(uint16(c.src.Pix[i+0])<<8 | uint16(c.src.Pix[i+0]))
-	result[1] = float32(uint16(c.src.Pix[i+1])<<8 | uint16(c.src.Pix[i+1]))
-	result[2] = float32(uint16(c.src.Pix[i+2])<<8 | uint16(c.src.Pix[i+2]))
-	result[3] = float32(uint16(c.src.Pix[i+3])<<8 | uint16(c.src.Pix[i+3]))
-	return
+func resizeGray16(in *image.Gray16, out *image.Gray16, scale float64, coeffs []int32, filterLength int) {
+	oldBounds := in.Bounds()
+	newBounds := out.Bounds()
+
+	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
+		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
+			interpX := scale*(float64(y)+0.5) + float64(oldBounds.Min.X)
+			start := int(interpX) - filterLength/2 + 1
+
+			var gray int64
+			var sum int64
+			for i := 0; i < filterLength; i++ {
+				xx := start + i
+				if xx < oldBounds.Min.X {
+					xx = oldBounds.Min.X
+				} else if xx >= oldBounds.Max.X {
+					xx = oldBounds.Max.X - 1
+				}
+
+				coeff := coeffs[(y-newBounds.Min.Y)*filterLength+i]
+				offset := (xx - oldBounds.Min.X) * 2
+				gray += int64(coeff) * int64(uint16(row[offset+0])<<8|uint16(row[offset+1]))
+				sum += int64(coeff)
+			}
+
+			offset := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*2
+			value := clampUint16(gray / sum)
+			out.Pix[offset+0] = uint8(value >> 8)
+			out.Pix[offset+1] = uint8(value)
+		}
+	}
 }
 
-type rgba64Converter struct {
-	src *image.RGBA64
-}
-
-func (c *rgba64Converter) at(x, y int, result *colorArray) {
-	i := c.src.PixOffset(replicateBorder(x, y, c.src.Rect))
-	result[0] = float32(uint16(c.src.Pix[i+0])<<8 | uint16(c.src.Pix[i+1]))
-	result[1] = float32(uint16(c.src.Pix[i+2])<<8 | uint16(c.src.Pix[i+3]))
-	result[2] = float32(uint16(c.src.Pix[i+4])<<8 | uint16(c.src.Pix[i+5]))
-	result[3] = float32(uint16(c.src.Pix[i+6])<<8 | uint16(c.src.Pix[i+7]))
-	return
-}
-
-type grayConverter struct {
-	src *image.Gray
-}
-
-func (c *grayConverter) at(x, y int, result *colorArray) {
-	i := c.src.PixOffset(replicateBorder(x, y, c.src.Rect))
-	g := float32(uint16(c.src.Pix[i])<<8 | uint16(c.src.Pix[i]))
-	result[0] = g
-	result[1] = g
-	result[2] = g
-	result[3] = float32(0xffff)
-	return
-}
-
-type gray16Converter struct {
-	src *image.Gray16
-}
-
-func (c *gray16Converter) at(x, y int, result *colorArray) {
-	i := c.src.PixOffset(replicateBorder(x, y, c.src.Rect))
-	g := float32(uint16(c.src.Pix[i+0])<<8 | uint16(c.src.Pix[i+1]))
-	result[0] = g
-	result[1] = g
-	result[2] = g
-	result[3] = float32(0xffff)
-	return
-}
-
-type ycbcrConverter struct {
-	src *image.YCbCr
-}
-
-func (c *ycbcrConverter) at(x, y int, result *colorArray) {
-	xx, yy := replicateBorder(x, y, c.src.Rect)
-	yi := c.src.YOffset(xx, yy)
-	ci := c.src.COffset(xx, yy)
-	r, g, b := color.YCbCrToRGB(c.src.Y[yi], c.src.Cb[ci], c.src.Cr[ci])
-	result[0] = float32(uint16(r) * 0x101)
-	result[1] = float32(uint16(g) * 0x101)
-	result[2] = float32(uint16(b) * 0x101)
-	result[3] = float32(0xffff)
-	return
+func convertYCbCrToRGBA(in *image.YCbCr) *image.RGBA {
+	out := image.NewRGBA(in.Bounds())
+	for y := 0; y < out.Bounds().Dy(); y++ {
+		for x := 0; x < out.Bounds().Dx(); x++ {
+			p := out.Pix[y*out.Stride+4*x:]
+			yi := in.YOffset(x, y)
+			ci := in.COffset(x, y)
+			r, g, b := color.YCbCrToRGB(in.Y[yi], in.Cb[ci], in.Cr[ci])
+			p[0] = r
+			p[1] = g
+			p[2] = b
+			p[3] = 0xff
+		}
+	}
+	return out
 }
