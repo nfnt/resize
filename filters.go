@@ -89,8 +89,9 @@ func createWeights8(dy, minx, filterLength int, blur, scale float64, kernel func
 	for y := 0; y < dy; y++ {
 		interpX := scale*(float64(y)+0.5) + float64(minx)
 		start[y] = int(interpX) - filterLength/2 + 1
+		interpX -= float64(start[y])
 		for i := 0; i < filterLength; i++ {
-			in := (interpX - float64(start[y]) - float64(i)) * filterFactor
+			in := (interpX - float64(i)) * filterFactor
 			coeffs[y*filterLength+i] = int16(kernel(in) * 256)
 		}
 	}
@@ -108,9 +109,33 @@ func createWeights16(dy, minx, filterLength int, blur, scale float64, kernel fun
 	for y := 0; y < dy; y++ {
 		interpX := scale*(float64(y)+0.5) + float64(minx)
 		start[y] = int(interpX) - filterLength/2 + 1
+		interpX -= float64(start[y])
 		for i := 0; i < filterLength; i++ {
-			in := (interpX - float64(start[y]) - float64(i)) * filterFactor
+			in := (interpX - float64(i)) * filterFactor
 			coeffs[y*filterLength+i] = int32(kernel(in) * 65536)
+		}
+	}
+
+	return coeffs, start, filterLength
+}
+
+func createWeightsNearest(dy, minx, filterLength int, blur, scale float64) ([]bool, []int, int) {
+	filterLength = filterLength * int(math.Max(math.Ceil(blur*scale), 1))
+	filterFactor := math.Min(1./(blur*scale), 1)
+
+	coeffs := make([]bool, dy*filterLength)
+	start := make([]int, dy)
+	for y := 0; y < dy; y++ {
+		interpX := scale*(float64(y)+0.5) + float64(minx)
+		start[y] = int(interpX) - filterLength/2 + 1
+		interpX -= float64(start[y])
+		for i := 0; i < filterLength; i++ {
+			in := (interpX - float64(i)) * filterFactor
+			if in >= -0.5 && in < 0.5 {
+				coeffs[y*filterLength+i] = true
+			} else {
+				coeffs[y*filterLength+i] = false
+			}
 		}
 	}
 
