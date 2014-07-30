@@ -16,10 +16,7 @@ THIS SOFTWARE.
 
 package resize
 
-import (
-	"image"
-	"image/color"
-)
+import "image"
 
 // Keep value in [0,255] range.
 func clampUint8(in int32) uint8 {
@@ -257,19 +254,81 @@ func resizeGray16(in *image.Gray16, out *image.Gray16, scale float64, coeffs []i
 	}
 }
 
-func convertYCbCrToRGBA(in *image.YCbCr) *image.RGBA {
-	out := image.NewRGBA(in.Bounds())
-	for y := 0; y < out.Bounds().Dy(); y++ {
-		for x := 0; x < out.Bounds().Dx(); x++ {
-			p := out.Pix[y*out.Stride+4*x:]
-			yi := in.YOffset(x, y)
-			ci := in.COffset(x, y)
-			r, g, b := color.YCbCrToRGB(in.Y[yi], in.Cb[ci], in.Cr[ci])
-			p[0] = r
-			p[1] = g
-			p[2] = b
-			p[3] = 0xff
+func resizeYCbCr(in *ycc, out *ycc, scale float64, coeffs []int16, offset []int, filterLength int) {
+	oldBounds := in.Bounds()
+	newBounds := out.Bounds()
+	minX := oldBounds.Min.X * 3
+	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1) * 3
+
+	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
+		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
+			var p [3]int32
+			var sum int32
+			start := offset[y]
+			ci := (y - newBounds.Min.Y) * filterLength
+			for i := 0; i < filterLength; i++ {
+				coeff := coeffs[ci+i]
+				if coeff != 0 {
+					xi := start + i
+					switch {
+					case uint(xi) < uint(oldBounds.Max.X):
+						xi *= 3
+					case xi >= oldBounds.Max.X:
+						xi = maxX
+					default:
+						xi = minX
+					}
+					p[0] += int32(coeff) * int32(row[xi+0])
+					p[1] += int32(coeff) * int32(row[xi+1])
+					p[2] += int32(coeff) * int32(row[xi+2])
+					sum += int32(coeff)
+				}
+			}
+
+			xo := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*3
+			out.Pix[xo+0] = clampUint8(p[0] / sum)
+			out.Pix[xo+1] = clampUint8(p[1] / sum)
+			out.Pix[xo+2] = clampUint8(p[2] / sum)
 		}
 	}
-	return out
+}
+
+func nearestYCbCr(in *ycc, out *ycc, scale float64, coeffs []bool, offset []int, filterLength int) {
+	oldBounds := in.Bounds()
+	newBounds := out.Bounds()
+	minX := oldBounds.Min.X * 3
+	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1) * 3
+
+	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
+		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
+			var p [3]float32
+			var sum float32
+			start := offset[y]
+			ci := (y - newBounds.Min.Y) * filterLength
+			for i := 0; i < filterLength; i++ {
+				if coeffs[ci+i] {
+					xi := start + i
+					switch {
+					case uint(xi) < uint(oldBounds.Max.X):
+						xi *= 3
+					case xi >= oldBounds.Max.X:
+						xi = maxX
+					default:
+						xi = minX
+					}
+					p[0] += float32(row[xi+0])
+					p[1] += float32(row[xi+1])
+					p[2] += float32(row[xi+2])
+					sum++
+				}
+			}
+
+			xo := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*3
+			out.Pix[xo+0] = floatToUint8(p[0] / sum)
+			out.Pix[xo+1] = floatToUint8(p[1] / sum)
+			out.Pix[xo+2] = floatToUint8(p[2] / sum)
+		}
+	}
 }

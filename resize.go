@@ -129,35 +129,33 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 	case *image.YCbCr:
 		// 8-bit precision
 		// accessing the YCbCr arrays in a tight loop is slow.
-		// converting the image before filtering will improve performance.
-		inputAsRGBA := convertYCbCrToRGBA(input)
-		temp := image.NewRGBA(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
-		result := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
+		// converting the image to ycc increases performance by 2x.
+		temp := newYCC(image.Rect(0, 0, input.Bounds().Dy(), int(width)), input.SubsampleRatio)
+		result := newYCC(image.Rect(0, 0, int(width), int(height)), input.SubsampleRatio)
 
-		// horizontal filter, results in transposed temporary image
 		coeffs, offset, filterLength := createWeights8(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX, kernel)
+		in := imageYCbCrToYCC(input)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(temp, i, cpus).(*image.RGBA)
+			slice := makeSlice(temp, i, cpus).(*ycc)
 			go func() {
 				defer wg.Done()
-				resizeRGBA(inputAsRGBA, slice, scaleX, coeffs, offset, filterLength)
+				resizeYCbCr(in, slice, scaleX, coeffs, offset, filterLength)
 			}()
 		}
 		wg.Wait()
 
-		// horizontal filter on transposed image, result is not transposed
 		coeffs, offset, filterLength = createWeights8(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(result, i, cpus).(*image.RGBA)
+			slice := makeSlice(result, i, cpus).(*ycc)
 			go func() {
 				defer wg.Done()
-				resizeRGBA(temp, slice, scaleY, coeffs, offset, filterLength)
+				resizeYCbCr(temp, slice, scaleY, coeffs, offset, filterLength)
 			}()
 		}
 		wg.Wait()
-		return result
+		return result.YCbCr()
 	case *image.RGBA64:
 		// 16-bit precision
 		temp := image.NewRGBA64(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
@@ -315,35 +313,33 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 	case *image.YCbCr:
 		// 8-bit precision
 		// accessing the YCbCr arrays in a tight loop is slow.
-		// converting the image before filtering will improve performance.
-		inputAsRGBA := convertYCbCrToRGBA(input)
-		temp := image.NewRGBA(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
-		result := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
+		// converting the image to ycc increases performance by 2x.
+		temp := newYCC(image.Rect(0, 0, input.Bounds().Dy(), int(width)), input.SubsampleRatio)
+		result := newYCC(image.Rect(0, 0, int(width), int(height)), input.SubsampleRatio)
 
-		// horizontal filter, results in transposed temporary image
 		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX)
+		in := imageYCbCrToYCC(input)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(temp, i, cpus).(*image.RGBA)
+			slice := makeSlice(temp, i, cpus).(*ycc)
 			go func() {
 				defer wg.Done()
-				nearestRGBA(inputAsRGBA, slice, scaleX, coeffs, offset, filterLength)
+				nearestYCbCr(in, slice, scaleX, coeffs, offset, filterLength)
 			}()
 		}
 		wg.Wait()
 
-		// horizontal filter on transposed image, result is not transposed
 		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(result, i, cpus).(*image.RGBA)
+			slice := makeSlice(result, i, cpus).(*ycc)
 			go func() {
 				defer wg.Done()
-				nearestRGBA(temp, slice, scaleY, coeffs, offset, filterLength)
+				nearestYCbCr(temp, slice, scaleY, coeffs, offset, filterLength)
 			}()
 		}
 		wg.Wait()
-		return result
+		return result.YCbCr()
 	case *image.RGBA64:
 		// 16-bit precision
 		temp := image.NewRGBA64(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
