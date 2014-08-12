@@ -38,7 +38,7 @@ type ycc struct {
 // PixOffset returns the index of the first element of Pix that corresponds to
 // the pixel at (x, y).
 func (p *ycc) PixOffset(x, y int) int {
-	return (y * p.Stride) + (x * 3)
+	return (y-p.Rect.Min.Y)*p.Stride + (x-p.Rect.Min.X)*3
 }
 
 func (p *ycc) Bounds() image.Rectangle {
