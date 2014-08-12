@@ -35,7 +35,7 @@ func floatToUint16(x float32) uint16 {
 }
 
 func nearestGeneric(in image.Image, out *image.RGBA64, scale float64, coeffs []bool, offset []int, filterLength int) {
-	oldBounds := in.Bounds()
+	oldBounds := image.Rect(0, 0, in.Bounds().Dx(), in.Bounds().Dy())
 	newBounds := out.Bounds()
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
@@ -82,7 +82,7 @@ func nearestGeneric(in image.Image, out *image.RGBA64, scale float64, coeffs []b
 }
 
 func nearestRGBA(in *image.RGBA, out *image.RGBA, scale float64, coeffs []bool, offset []int, filterLength int) {
-	oldBounds := in.Bounds()
+	oldBounds := image.Rect(0, 0, in.Rect.Dx(), in.Rect.Dy())
 	newBounds := out.Bounds()
 	minX := oldBounds.Min.X * 4
 	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1) * 4
@@ -123,7 +123,7 @@ func nearestRGBA(in *image.RGBA, out *image.RGBA, scale float64, coeffs []bool, 
 }
 
 func nearestRGBA64(in *image.RGBA64, out *image.RGBA64, scale float64, coeffs []bool, offset []int, filterLength int) {
-	oldBounds := in.Bounds()
+	oldBounds := image.Rect(0, 0, in.Rect.Dx(), in.Rect.Dy())
 	newBounds := out.Bounds()
 	minX := oldBounds.Min.X * 8
 	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1) * 8
@@ -172,7 +172,7 @@ func nearestRGBA64(in *image.RGBA64, out *image.RGBA64, scale float64, coeffs []
 }
 
 func nearestGray(in *image.Gray, out *image.Gray, scale float64, coeffs []bool, offset []int, filterLength int) {
-	oldBounds := in.Bounds()
+	oldBounds := image.Rect(0, 0, in.Rect.Dx(), in.Rect.Dy())
 	newBounds := out.Bounds()
 	minX := oldBounds.Min.X
 	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1)
@@ -207,7 +207,7 @@ func nearestGray(in *image.Gray, out *image.Gray, scale float64, coeffs []bool, 
 }
 
 func nearestGray16(in *image.Gray16, out *image.Gray16, scale float64, coeffs []bool, offset []int, filterLength int) {
-	oldBounds := in.Bounds()
+	oldBounds := image.Rect(0, 0, in.Rect.Dx(), in.Rect.Dy())
 	newBounds := out.Bounds()
 	minX := oldBounds.Min.X * 2
 	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1) * 2
