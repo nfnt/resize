@@ -3,14 +3,16 @@ package resize
 import (
 	"image"
 	"image/color"
-	"runtime"
+	"image/png"
+	"os"
+	//"runtime"
 	"testing"
 )
 
 var img = image.NewGray16(image.Rect(0, 0, 3, 3))
 
 func init() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	//runtime.GOMAXPROCS(runtime.NumCPU())
 	img.Set(1, 1, color.White)
 }
 
@@ -62,6 +64,12 @@ func Test_SameColor(t *testing.T) {
 			}
 		}
 	}
+}
+
+func Test_Bounds(t *testing.T) {
+	img := image.NewRGBA(image.Rect(20, 10, 200, 99))
+	out := Resize(80, 80, img, Lanczos2)
+	out.At(0, 0)
 }
 
 func Benchmark_BigResizeLanczos3(b *testing.B) {
@@ -116,4 +124,22 @@ func Benchmark_LargeJpegThumbLanczos2(b *testing.B) {
 
 func Benchmark_LargeJpegThumbLanczos3(b *testing.B) {
 	jpegThumb(b, Lanczos3)
+}
+
+func Benchmark_LargeN(b *testing.B) {
+	file, _ := os.Open("M94A0467.png")
+	defer file.Close()
+	img, _ := png.Decode(file)
+	var output image.Image
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		output = Resize(900, 0, img, Bicubic)
+	}
+	b.StopTimer()
+
+	output.At(0, 0)
+	outPng, _ := os.Create("out.png")
+	defer outPng.Close()
+	png.Encode(outPng, output)
 }
