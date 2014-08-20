@@ -48,7 +48,7 @@ func resizeGeneric(in image.Image, out *image.RGBA64, scale float64, coeffs []in
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var rgba [4]int64
 			var sum int64
-			start := offset[y-newBounds.Min.Y]
+			start := offset[y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
@@ -91,11 +91,11 @@ func resizeRGBA(in *image.RGBA, out *image.RGBA, scale float64, coeffs []int16, 
 	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
+		row := in.Pix[x*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var rgba [4]int32
 			var sum int32
-			start := offset[y-newBounds.Min.Y]
+			start := offset[y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
@@ -131,11 +131,11 @@ func resizeRGBA64(in *image.RGBA64, out *image.RGBA64, scale float64, coeffs []i
 	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
+		row := in.Pix[x*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var rgba [4]int64
 			var sum int64
-			start := offset[y-newBounds.Min.Y]
+			start := offset[y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
@@ -183,7 +183,7 @@ func resizeGray(in *image.Gray, out *image.Gray, scale float64, coeffs []int16, 
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var gray int32
 			var sum int32
-			start := offset[y-newBounds.Min.Y]
+			start := offset[y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
@@ -211,11 +211,11 @@ func resizeGray16(in *image.Gray16, out *image.Gray16, scale float64, coeffs []i
 	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
+		row := in.Pix[x*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var gray int64
 			var sum int64
-			start := offset[y-newBounds.Min.Y]
+			start := offset[y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
@@ -247,11 +247,11 @@ func resizeYCbCr(in *ycc, out *ycc, scale float64, coeffs []int16, offset []int,
 	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
+		row := in.Pix[x*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var p [3]int32
 			var sum int32
-			start := offset[y-newBounds.Min.Y]
+			start := offset[y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
@@ -285,11 +285,11 @@ func nearestYCbCr(in *ycc, out *ycc, scale float64, coeffs []bool, offset []int,
 	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
+		row := in.Pix[x*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var p [3]float32
 			var sum float32
-			start := offset[y-newBounds.Min.Y]
+			start := offset[y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {

@@ -42,7 +42,7 @@ func nearestGeneric(in image.Image, out *image.RGBA64, scale float64, coeffs []b
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var rgba [4]float32
 			var sum float32
-			start := offset[y-newBounds.Min.Y]
+			start := offset[y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
@@ -84,11 +84,11 @@ func nearestRGBA(in *image.RGBA, out *image.RGBA, scale float64, coeffs []bool, 
 	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
+		row := in.Pix[x*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var rgba [4]float32
 			var sum float32
-			start := offset[y-newBounds.Min.Y]
+			start := offset[y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
@@ -123,11 +123,11 @@ func nearestRGBA64(in *image.RGBA64, out *image.RGBA64, scale float64, coeffs []
 	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
+		row := in.Pix[x*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var rgba [4]float32
 			var sum float32
-			start := offset[y-newBounds.Min.Y]
+			start := offset[y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
@@ -170,11 +170,11 @@ func nearestGray(in *image.Gray, out *image.Gray, scale float64, coeffs []bool, 
 	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
+		row := in.Pix[x*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var gray float32
 			var sum float32
-			start := offset[y-newBounds.Min.Y]
+			start := offset[y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
@@ -201,11 +201,11 @@ func nearestGray16(in *image.Gray16, out *image.Gray16, scale float64, coeffs []
 	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
+		row := in.Pix[x*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var gray float32
 			var sum float32
-			start := offset[y-newBounds.Min.Y]
+			start := offset[y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {

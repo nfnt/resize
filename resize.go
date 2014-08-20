@@ -91,7 +91,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 	}
 
 	taps, kernel := interp.kernel()
-	cpus := 1 //runtime.NumCPU() TODO
+	cpus := runtime.NumCPU()
 	wg := sync.WaitGroup{}
 
 	// Generic access to image.Image is slow in tight loops.
