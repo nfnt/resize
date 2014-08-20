@@ -35,27 +35,25 @@ func floatToUint16(x float32) uint16 {
 }
 
 func nearestGeneric(in image.Image, out *image.RGBA64, scale float64, coeffs []bool, offset []int, filterLength int) {
-	oldBounds := image.Rect(0, 0, in.Bounds().Dx(), in.Bounds().Dy())
 	newBounds := out.Bounds()
+	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var rgba [4]float32
 			var sum float32
-			start := offset[y]
+			start := offset[y-newBounds.Min.Y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
 					xi := start + i
 					switch {
-					case uint(xi) < uint(oldBounds.Max.X):
-						break
-					case xi >= oldBounds.Max.X:
-						xi = oldBounds.Min.X
-					default:
-						xi = oldBounds.Max.X - 1
+					case xi < 0:
+						xi = 0
+					case xi >= maxX:
+						xi = maxX
 					}
-					r, g, b, a := in.At(xi, x).RGBA()
+					r, g, b, a := in.At(xi+in.Bounds().Min.X, x+in.Bounds().Min.Y).RGBA()
 					rgba[0] += float32(r)
 					rgba[1] += float32(g)
 					rgba[2] += float32(b)
@@ -82,28 +80,26 @@ func nearestGeneric(in image.Image, out *image.RGBA64, scale float64, coeffs []b
 }
 
 func nearestRGBA(in *image.RGBA, out *image.RGBA, scale float64, coeffs []bool, offset []int, filterLength int) {
-	oldBounds := image.Rect(0, 0, in.Rect.Dx(), in.Rect.Dy())
 	newBounds := out.Bounds()
-	minX := oldBounds.Min.X * 4
-	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1) * 4
+	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var rgba [4]float32
 			var sum float32
-			start := offset[y]
+			start := offset[y-newBounds.Min.Y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
 					xi := start + i
 					switch {
-					case uint(xi) < uint(oldBounds.Max.X):
-						xi *= 4
-					case xi >= oldBounds.Max.X:
-						xi = maxX
+					case xi < 0:
+						xi = 0
+					case xi >= maxX:
+						xi = 4 * maxX
 					default:
-						xi = minX
+						xi *= 4
 					}
 					rgba[0] += float32(row[xi+0])
 					rgba[1] += float32(row[xi+1])
@@ -123,28 +119,26 @@ func nearestRGBA(in *image.RGBA, out *image.RGBA, scale float64, coeffs []bool, 
 }
 
 func nearestRGBA64(in *image.RGBA64, out *image.RGBA64, scale float64, coeffs []bool, offset []int, filterLength int) {
-	oldBounds := image.Rect(0, 0, in.Rect.Dx(), in.Rect.Dy())
 	newBounds := out.Bounds()
-	minX := oldBounds.Min.X * 8
-	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1) * 8
+	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var rgba [4]float32
 			var sum float32
-			start := offset[y]
+			start := offset[y-newBounds.Min.Y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
 					xi := start + i
 					switch {
-					case uint(xi) < uint(oldBounds.Max.X):
-						xi *= 8
-					case xi >= oldBounds.Max.X:
-						xi = maxX
+					case xi < 0:
+						xi = 0
+					case xi >= maxX:
+						xi = 8 * maxX
 					default:
-						xi = minX
+						xi *= 8
 					}
 					rgba[0] += float32(uint16(row[xi+0])<<8 | uint16(row[xi+1]))
 					rgba[1] += float32(uint16(row[xi+2])<<8 | uint16(row[xi+3]))
@@ -172,28 +166,24 @@ func nearestRGBA64(in *image.RGBA64, out *image.RGBA64, scale float64, coeffs []
 }
 
 func nearestGray(in *image.Gray, out *image.Gray, scale float64, coeffs []bool, offset []int, filterLength int) {
-	oldBounds := image.Rect(0, 0, in.Rect.Dx(), in.Rect.Dy())
 	newBounds := out.Bounds()
-	minX := oldBounds.Min.X
-	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1)
+	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var gray float32
 			var sum float32
-			start := offset[y]
+			start := offset[y-newBounds.Min.Y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
 					xi := start + i
 					switch {
-					case uint(xi) < uint(oldBounds.Max.X):
-						break
-					case xi >= oldBounds.Max.X:
+					case xi < 0:
+						xi = 0
+					case xi >= maxX:
 						xi = maxX
-					default:
-						xi = minX
 					}
 					gray += float32(row[xi])
 					sum++
@@ -207,28 +197,26 @@ func nearestGray(in *image.Gray, out *image.Gray, scale float64, coeffs []bool, 
 }
 
 func nearestGray16(in *image.Gray16, out *image.Gray16, scale float64, coeffs []bool, offset []int, filterLength int) {
-	oldBounds := image.Rect(0, 0, in.Rect.Dx(), in.Rect.Dy())
 	newBounds := out.Bounds()
-	minX := oldBounds.Min.X * 2
-	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1) * 2
+	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var gray float32
 			var sum float32
-			start := offset[y]
+			start := offset[y-newBounds.Min.Y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
 					xi := start + i
 					switch {
-					case uint(xi) < uint(oldBounds.Max.X):
-						xi *= 2
-					case xi >= oldBounds.Max.X:
-						xi = maxX
+					case xi < 0:
+						xi = 0
+					case xi >= maxX:
+						xi = 2 * maxX
 					default:
-						xi = minX
+						xi *= 2
 					}
 					gray += float32(uint16(row[xi+0])<<8 | uint16(row[xi+1]))
 					sum++

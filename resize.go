@@ -91,7 +91,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 	}
 
 	taps, kernel := interp.kernel()
-	cpus := runtime.NumCPU()
+	cpus := 1 //runtime.NumCPU() TODO
 	wg := sync.WaitGroup{}
 
 	// Generic access to image.Image is slow in tight loops.
@@ -103,7 +103,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		result := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
 
 		// horizontal filter, results in transposed temporary image
-		coeffs, offset, filterLength := createWeights8(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX, kernel)
+		coeffs, offset, filterLength := createWeights8(temp.Bounds().Dy(), taps, blur, scaleX, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(temp, i, cpus).(*image.RGBA)
@@ -115,7 +115,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		wg.Wait()
 
 		// horizontal filter on transposed image, result is not transposed
-		coeffs, offset, filterLength = createWeights8(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY, kernel)
+		coeffs, offset, filterLength = createWeights8(result.Bounds().Dy(), taps, blur, scaleY, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(result, i, cpus).(*image.RGBA)
@@ -133,7 +133,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		temp := newYCC(image.Rect(0, 0, input.Bounds().Dy(), int(width)), input.SubsampleRatio)
 		result := newYCC(image.Rect(0, 0, int(width), int(height)), input.SubsampleRatio)
 
-		coeffs, offset, filterLength := createWeights8(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX, kernel)
+		coeffs, offset, filterLength := createWeights8(temp.Bounds().Dy(), taps, blur, scaleX, kernel)
 		in := imageYCbCrToYCC(input)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
@@ -145,7 +145,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		}
 		wg.Wait()
 
-		coeffs, offset, filterLength = createWeights8(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY, kernel)
+		coeffs, offset, filterLength = createWeights8(result.Bounds().Dy(), taps, blur, scaleY, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(result, i, cpus).(*ycc)
@@ -162,7 +162,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		result := image.NewRGBA64(image.Rect(0, 0, int(width), int(height)))
 
 		// horizontal filter, results in transposed temporary image
-		coeffs, offset, filterLength := createWeights16(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX, kernel)
+		coeffs, offset, filterLength := createWeights16(temp.Bounds().Dy(), taps, blur, scaleX, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(temp, i, cpus).(*image.RGBA64)
@@ -174,7 +174,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		wg.Wait()
 
 		// horizontal filter on transposed image, result is not transposed
-		coeffs, offset, filterLength = createWeights16(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY, kernel)
+		coeffs, offset, filterLength = createWeights16(result.Bounds().Dy(), taps, blur, scaleY, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(result, i, cpus).(*image.RGBA64)
@@ -191,7 +191,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		result := image.NewGray(image.Rect(0, 0, int(width), int(height)))
 
 		// horizontal filter, results in transposed temporary image
-		coeffs, offset, filterLength := createWeights8(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX, kernel)
+		coeffs, offset, filterLength := createWeights8(temp.Bounds().Dy(), taps, blur, scaleX, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(temp, i, cpus).(*image.Gray)
@@ -203,7 +203,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		wg.Wait()
 
 		// horizontal filter on transposed image, result is not transposed
-		coeffs, offset, filterLength = createWeights8(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY, kernel)
+		coeffs, offset, filterLength = createWeights8(result.Bounds().Dy(), taps, blur, scaleY, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(result, i, cpus).(*image.Gray)
@@ -220,7 +220,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		result := image.NewGray16(image.Rect(0, 0, int(width), int(height)))
 
 		// horizontal filter, results in transposed temporary image
-		coeffs, offset, filterLength := createWeights16(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX, kernel)
+		coeffs, offset, filterLength := createWeights16(temp.Bounds().Dy(), taps, blur, scaleX, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(temp, i, cpus).(*image.Gray16)
@@ -232,7 +232,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		wg.Wait()
 
 		// horizontal filter on transposed image, result is not transposed
-		coeffs, offset, filterLength = createWeights16(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY, kernel)
+		coeffs, offset, filterLength = createWeights16(result.Bounds().Dy(), taps, blur, scaleY, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(result, i, cpus).(*image.Gray16)
@@ -249,7 +249,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		result := image.NewRGBA64(image.Rect(0, 0, int(width), int(height)))
 
 		// horizontal filter, results in transposed temporary image
-		coeffs, offset, filterLength := createWeights16(temp.Bounds().Dy(), img.Bounds().Min.X, taps, blur, scaleX, kernel)
+		coeffs, offset, filterLength := createWeights16(temp.Bounds().Dy(), taps, blur, scaleX, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(temp, i, cpus).(*image.RGBA64)
@@ -261,7 +261,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		wg.Wait()
 
 		// horizontal filter on transposed image, result is not transposed
-		coeffs, offset, filterLength = createWeights16(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY, kernel)
+		coeffs, offset, filterLength = createWeights16(result.Bounds().Dy(), taps, blur, scaleY, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(result, i, cpus).(*image.RGBA64)
@@ -287,7 +287,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		result := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
 
 		// horizontal filter, results in transposed temporary image
-		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX)
+		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), taps, blur, scaleX)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(temp, i, cpus).(*image.RGBA)
@@ -299,7 +299,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		wg.Wait()
 
 		// horizontal filter on transposed image, result is not transposed
-		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY)
+		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), taps, blur, scaleY)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(result, i, cpus).(*image.RGBA)
@@ -317,7 +317,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		temp := newYCC(image.Rect(0, 0, input.Bounds().Dy(), int(width)), input.SubsampleRatio)
 		result := newYCC(image.Rect(0, 0, int(width), int(height)), input.SubsampleRatio)
 
-		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX)
+		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), taps, blur, scaleX)
 		in := imageYCbCrToYCC(input)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
@@ -329,7 +329,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		}
 		wg.Wait()
 
-		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY)
+		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), taps, blur, scaleY)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(result, i, cpus).(*ycc)
@@ -346,7 +346,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		result := image.NewRGBA64(image.Rect(0, 0, int(width), int(height)))
 
 		// horizontal filter, results in transposed temporary image
-		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX)
+		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), taps, blur, scaleX)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(temp, i, cpus).(*image.RGBA64)
@@ -358,7 +358,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		wg.Wait()
 
 		// horizontal filter on transposed image, result is not transposed
-		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY)
+		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), taps, blur, scaleY)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(result, i, cpus).(*image.RGBA64)
@@ -375,7 +375,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		result := image.NewGray(image.Rect(0, 0, int(width), int(height)))
 
 		// horizontal filter, results in transposed temporary image
-		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX)
+		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), taps, blur, scaleX)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(temp, i, cpus).(*image.Gray)
@@ -387,7 +387,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		wg.Wait()
 
 		// horizontal filter on transposed image, result is not transposed
-		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY)
+		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), taps, blur, scaleY)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(result, i, cpus).(*image.Gray)
@@ -404,7 +404,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		result := image.NewGray16(image.Rect(0, 0, int(width), int(height)))
 
 		// horizontal filter, results in transposed temporary image
-		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), input.Bounds().Min.X, taps, blur, scaleX)
+		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), taps, blur, scaleX)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(temp, i, cpus).(*image.Gray16)
@@ -416,7 +416,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		wg.Wait()
 
 		// horizontal filter on transposed image, result is not transposed
-		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY)
+		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), taps, blur, scaleY)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(result, i, cpus).(*image.Gray16)
@@ -433,7 +433,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		result := image.NewRGBA64(image.Rect(0, 0, int(width), int(height)))
 
 		// horizontal filter, results in transposed temporary image
-		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), img.Bounds().Min.X, taps, blur, scaleX)
+		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), taps, blur, scaleX)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(temp, i, cpus).(*image.RGBA64)
@@ -445,7 +445,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		wg.Wait()
 
 		// horizontal filter on transposed image, result is not transposed
-		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), temp.Bounds().Min.X, taps, blur, scaleY)
+		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), taps, blur, scaleY)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
 			slice := makeSlice(result, i, cpus).(*image.RGBA64)

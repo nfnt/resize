@@ -80,14 +80,14 @@ func lanczos3(in float64) float64 {
 }
 
 // range [-256,256]
-func createWeights8(dy, minx, filterLength int, blur, scale float64, kernel func(float64) float64) ([]int16, []int, int) {
+func createWeights8(dy, filterLength int, blur, scale float64, kernel func(float64) float64) ([]int16, []int, int) {
 	filterLength = filterLength * int(math.Max(math.Ceil(blur*scale), 1))
 	filterFactor := math.Min(1./(blur*scale), 1)
 
 	coeffs := make([]int16, dy*filterLength)
 	start := make([]int, dy)
 	for y := 0; y < dy; y++ {
-		interpX := scale*(float64(y)+0.5) + float64(minx)
+		interpX := scale * (float64(y) + 0.5)
 		start[y] = int(interpX) - filterLength/2 + 1
 		interpX -= float64(start[y])
 		for i := 0; i < filterLength; i++ {
@@ -100,14 +100,14 @@ func createWeights8(dy, minx, filterLength int, blur, scale float64, kernel func
 }
 
 // range [-65536,65536]
-func createWeights16(dy, minx, filterLength int, blur, scale float64, kernel func(float64) float64) ([]int32, []int, int) {
+func createWeights16(dy, filterLength int, blur, scale float64, kernel func(float64) float64) ([]int32, []int, int) {
 	filterLength = filterLength * int(math.Max(math.Ceil(blur*scale), 1))
 	filterFactor := math.Min(1./(blur*scale), 1)
 
 	coeffs := make([]int32, dy*filterLength)
 	start := make([]int, dy)
 	for y := 0; y < dy; y++ {
-		interpX := scale*(float64(y)+0.5) + float64(minx)
+		interpX := scale * (float64(y) + 0.5)
 		start[y] = int(interpX) - filterLength/2 + 1
 		interpX -= float64(start[y])
 		for i := 0; i < filterLength; i++ {
@@ -119,14 +119,14 @@ func createWeights16(dy, minx, filterLength int, blur, scale float64, kernel fun
 	return coeffs, start, filterLength
 }
 
-func createWeightsNearest(dy, minx, filterLength int, blur, scale float64) ([]bool, []int, int) {
+func createWeightsNearest(dy, filterLength int, blur, scale float64) ([]bool, []int, int) {
 	filterLength = filterLength * int(math.Max(math.Ceil(blur*scale), 1))
 	filterFactor := math.Min(1./(blur*scale), 1)
 
 	coeffs := make([]bool, dy*filterLength)
 	start := make([]int, dy)
 	for y := 0; y < dy; y++ {
-		interpX := scale*(float64(y)+0.5) + float64(minx)
+		interpX := scale * (float64(y) + 0.5)
 		start[y] = int(interpX) - filterLength/2 + 1
 		interpX -= float64(start[y])
 		for i := 0; i < filterLength; i++ {

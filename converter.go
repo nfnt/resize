@@ -41,28 +41,26 @@ func clampUint16(in int64) uint16 {
 }
 
 func resizeGeneric(in image.Image, out *image.RGBA64, scale float64, coeffs []int32, offset []int, filterLength int) {
-	oldBounds := image.Rect(0, 0, in.Bounds().Dx(), in.Bounds().Dy())
 	newBounds := out.Bounds()
+	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var rgba [4]int64
 			var sum int64
-			start := offset[y]
+			start := offset[y-newBounds.Min.Y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
 				if coeff != 0 {
 					xi := start + i
 					switch {
-					case uint(xi) < uint(oldBounds.Max.X):
-						break
-					case xi >= oldBounds.Max.X:
-						xi = oldBounds.Min.X
-					default:
-						xi = oldBounds.Max.X - 1
+					case xi < 0:
+						xi = 0
+					case xi >= maxX:
+						xi = maxX
 					}
-					r, g, b, a := in.At(xi, x).RGBA()
+					r, g, b, a := in.At(xi+in.Bounds().Min.X, x+in.Bounds().Min.Y).RGBA()
 					rgba[0] += int64(coeff) * int64(r)
 					rgba[1] += int64(coeff) * int64(g)
 					rgba[2] += int64(coeff) * int64(b)
@@ -89,29 +87,27 @@ func resizeGeneric(in image.Image, out *image.RGBA64, scale float64, coeffs []in
 }
 
 func resizeRGBA(in *image.RGBA, out *image.RGBA, scale float64, coeffs []int16, offset []int, filterLength int) {
-	oldBounds := image.Rect(0, 0, in.Rect.Dx(), in.Rect.Dy())
 	newBounds := out.Bounds()
-	minX := oldBounds.Min.X * 4
-	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1) * 4
+	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var rgba [4]int32
 			var sum int32
-			start := offset[y]
+			start := offset[y-newBounds.Min.Y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
 				if coeff != 0 {
 					xi := start + i
 					switch {
-					case uint(xi) < uint(oldBounds.Max.X):
-						xi *= 4
-					case xi >= oldBounds.Max.X:
-						xi = maxX
+					case xi < 0:
+						xi = 0
+					case xi >= maxX:
+						xi = 4 * maxX
 					default:
-						xi = minX
+						xi *= 4
 					}
 					rgba[0] += int32(coeff) * int32(row[xi+0])
 					rgba[1] += int32(coeff) * int32(row[xi+1])
@@ -131,29 +127,27 @@ func resizeRGBA(in *image.RGBA, out *image.RGBA, scale float64, coeffs []int16, 
 }
 
 func resizeRGBA64(in *image.RGBA64, out *image.RGBA64, scale float64, coeffs []int32, offset []int, filterLength int) {
-	oldBounds := image.Rect(0, 0, in.Rect.Dx(), in.Rect.Dy())
 	newBounds := out.Bounds()
-	minX := oldBounds.Min.X * 8
-	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1) * 8
+	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var rgba [4]int64
 			var sum int64
-			start := offset[y]
+			start := offset[y-newBounds.Min.Y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
 				if coeff != 0 {
 					xi := start + i
 					switch {
-					case uint(xi) < uint(oldBounds.Max.X):
-						xi *= 8
-					case xi >= oldBounds.Max.X:
-						xi = maxX
+					case xi < 0:
+						xi = 0
+					case xi >= maxX:
+						xi = 8 * maxX
 					default:
-						xi = minX
+						xi *= 8
 					}
 					rgba[0] += int64(coeff) * int64(uint16(row[xi+0])<<8|uint16(row[xi+1]))
 					rgba[1] += int64(coeff) * int64(uint16(row[xi+2])<<8|uint16(row[xi+3]))
@@ -181,29 +175,25 @@ func resizeRGBA64(in *image.RGBA64, out *image.RGBA64, scale float64, coeffs []i
 }
 
 func resizeGray(in *image.Gray, out *image.Gray, scale float64, coeffs []int16, offset []int, filterLength int) {
-	oldBounds := image.Rect(0, 0, in.Rect.Dx(), in.Rect.Dy())
 	newBounds := out.Bounds()
-	minX := oldBounds.Min.X
-	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1)
+	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var gray int32
 			var sum int32
-			start := offset[y]
+			start := offset[y-newBounds.Min.Y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
 				if coeff != 0 {
 					xi := start + i
 					switch {
-					case uint(xi) < uint(oldBounds.Max.X):
-						break
-					case xi >= oldBounds.Max.X:
+					case xi < 0:
+						xi = 0
+					case xi >= maxX:
 						xi = maxX
-					default:
-						xi = minX
 					}
 					gray += int32(coeff) * int32(row[xi])
 					sum += int32(coeff)
@@ -217,29 +207,27 @@ func resizeGray(in *image.Gray, out *image.Gray, scale float64, coeffs []int16, 
 }
 
 func resizeGray16(in *image.Gray16, out *image.Gray16, scale float64, coeffs []int32, offset []int, filterLength int) {
-	oldBounds := image.Rect(0, 0, in.Rect.Dx(), in.Rect.Dy())
 	newBounds := out.Bounds()
-	minX := oldBounds.Min.X * 2
-	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1) * 2
+	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var gray int64
 			var sum int64
-			start := offset[y]
+			start := offset[y-newBounds.Min.Y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
 				if coeff != 0 {
 					xi := start + i
 					switch {
-					case uint(xi) < uint(oldBounds.Max.X):
-						xi *= 2
-					case xi >= oldBounds.Max.X:
-						xi = maxX
+					case xi < 0:
+						xi = 0
+					case xi >= maxX:
+						xi = 2 * maxX
 					default:
-						xi = minX
+						xi *= 2
 					}
 					gray += int64(coeff) * int64(uint16(row[xi+0])<<8|uint16(row[xi+1]))
 					sum += int64(coeff)
@@ -255,29 +243,27 @@ func resizeGray16(in *image.Gray16, out *image.Gray16, scale float64, coeffs []i
 }
 
 func resizeYCbCr(in *ycc, out *ycc, scale float64, coeffs []int16, offset []int, filterLength int) {
-	oldBounds := image.Rect(0, 0, in.Rect.Dx(), in.Rect.Dy())
 	newBounds := out.Bounds()
-	minX := oldBounds.Min.X * 3
-	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1) * 3
+	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var p [3]int32
 			var sum int32
-			start := offset[y]
+			start := offset[y-newBounds.Min.Y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
 				if coeff != 0 {
 					xi := start + i
 					switch {
-					case uint(xi) < uint(oldBounds.Max.X):
-						xi *= 3
-					case xi >= oldBounds.Max.X:
-						xi = maxX
+					case xi < 0:
+						xi = 0
+					case xi >= maxX:
+						xi = 3 * maxX
 					default:
-						xi = minX
+						xi *= 3
 					}
 					p[0] += int32(coeff) * int32(row[xi+0])
 					p[1] += int32(coeff) * int32(row[xi+1])
@@ -295,28 +281,26 @@ func resizeYCbCr(in *ycc, out *ycc, scale float64, coeffs []int16, offset []int,
 }
 
 func nearestYCbCr(in *ycc, out *ycc, scale float64, coeffs []bool, offset []int, filterLength int) {
-	oldBounds := image.Rect(0, 0, in.Rect.Dx(), in.Rect.Dy())
 	newBounds := out.Bounds()
-	minX := oldBounds.Min.X * 3
-	maxX := (oldBounds.Max.X - oldBounds.Min.X - 1) * 3
+	maxX := in.Bounds().Dx() - 1
 
 	for x := newBounds.Min.X; x < newBounds.Max.X; x++ {
-		row := in.Pix[(x-oldBounds.Min.Y)*in.Stride:]
+		row := in.Pix[(x-newBounds.Min.X)*in.Stride:]
 		for y := newBounds.Min.Y; y < newBounds.Max.Y; y++ {
 			var p [3]float32
 			var sum float32
-			start := offset[y]
+			start := offset[y-newBounds.Min.Y]
 			ci := (y - newBounds.Min.Y) * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
 					xi := start + i
 					switch {
-					case uint(xi) < uint(oldBounds.Max.X):
-						xi *= 3
-					case xi >= oldBounds.Max.X:
-						xi = maxX
+					case xi < 0:
+						xi = 0
+					case xi >= maxX:
+						xi = 3 * maxX
 					default:
-						xi = minX
+						xi *= 3
 					}
 					p[0] += float32(row[xi+0])
 					p[1] += float32(row[xi+1])
