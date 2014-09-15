@@ -43,7 +43,7 @@ func nearestGeneric(in image.Image, out *image.RGBA64, scale float64, coeffs []b
 			var rgba [4]float32
 			var sum float32
 			start := offset[y]
-			ci := (y - newBounds.Min.Y) * filterLength
+			ci := y * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
 					xi := start + i
@@ -89,7 +89,7 @@ func nearestRGBA(in *image.RGBA, out *image.RGBA, scale float64, coeffs []bool, 
 			var rgba [4]float32
 			var sum float32
 			start := offset[y]
-			ci := (y - newBounds.Min.Y) * filterLength
+			ci := y * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
 					xi := start + i
@@ -128,7 +128,7 @@ func nearestRGBA64(in *image.RGBA64, out *image.RGBA64, scale float64, coeffs []
 			var rgba [4]float32
 			var sum float32
 			start := offset[y]
-			ci := (y - newBounds.Min.Y) * filterLength
+			ci := y * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
 					xi := start + i
@@ -175,7 +175,7 @@ func nearestGray(in *image.Gray, out *image.Gray, scale float64, coeffs []bool, 
 			var gray float32
 			var sum float32
 			start := offset[y]
-			ci := (y - newBounds.Min.Y) * filterLength
+			ci := y * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
 					xi := start + i
@@ -206,7 +206,7 @@ func nearestGray16(in *image.Gray16, out *image.Gray16, scale float64, coeffs []
 			var gray float32
 			var sum float32
 			start := offset[y]
-			ci := (y - newBounds.Min.Y) * filterLength
+			ci := y * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
 					xi := start + i

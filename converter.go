@@ -49,7 +49,7 @@ func resizeGeneric(in image.Image, out *image.RGBA64, scale float64, coeffs []in
 			var rgba [4]int64
 			var sum int64
 			start := offset[y]
-			ci := (y - newBounds.Min.Y) * filterLength
+			ci := y * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
 				if coeff != 0 {
@@ -96,7 +96,7 @@ func resizeRGBA(in *image.RGBA, out *image.RGBA, scale float64, coeffs []int16, 
 			var rgba [4]int32
 			var sum int32
 			start := offset[y]
-			ci := (y - newBounds.Min.Y) * filterLength
+			ci := y * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
 				if coeff != 0 {
@@ -136,7 +136,7 @@ func resizeRGBA64(in *image.RGBA64, out *image.RGBA64, scale float64, coeffs []i
 			var rgba [4]int64
 			var sum int64
 			start := offset[y]
-			ci := (y - newBounds.Min.Y) * filterLength
+			ci := y * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
 				if coeff != 0 {
@@ -184,7 +184,7 @@ func resizeGray(in *image.Gray, out *image.Gray, scale float64, coeffs []int16, 
 			var gray int32
 			var sum int32
 			start := offset[y]
-			ci := (y - newBounds.Min.Y) * filterLength
+			ci := y * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
 				if coeff != 0 {
@@ -216,7 +216,7 @@ func resizeGray16(in *image.Gray16, out *image.Gray16, scale float64, coeffs []i
 			var gray int64
 			var sum int64
 			start := offset[y]
-			ci := (y - newBounds.Min.Y) * filterLength
+			ci := y * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
 				if coeff != 0 {
@@ -252,7 +252,7 @@ func resizeYCbCr(in *ycc, out *ycc, scale float64, coeffs []int16, offset []int,
 			var p [3]int32
 			var sum int32
 			start := offset[y]
-			ci := (y - newBounds.Min.Y) * filterLength
+			ci := y * filterLength
 			for i := 0; i < filterLength; i++ {
 				coeff := coeffs[ci+i]
 				if coeff != 0 {
@@ -290,7 +290,7 @@ func nearestYCbCr(in *ycc, out *ycc, scale float64, coeffs []bool, offset []int,
 			var p [3]float32
 			var sum float32
 			start := offset[y]
-			ci := (y - newBounds.Min.Y) * filterLength
+			ci := y * filterLength
 			for i := 0; i < filterLength; i++ {
 				if coeffs[ci+i] {
 					xi := start + i
