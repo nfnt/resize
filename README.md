@@ -17,7 +17,7 @@ It's that easy!
 Usage
 -----
 
-Import package with
+This package needs at least Go 1.1. Import package with
 
 ```go
 import "github.com/nfnt/resize"
