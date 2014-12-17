@@ -3,7 +3,7 @@ Resize
 
 Image resizing for the [Go programming language](http://golang.org) with common interpolation methods.
 
-[![Build Status](https://travis-ci.org/nfnt/resize.png)](https://travis-ci.org/nfnt/resize)
+[![Build Status](https://travis-ci.org/nfnt/resize.svg)](https://travis-ci.org/nfnt/resize)
 
 Installation
 ------------
