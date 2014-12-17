@@ -70,6 +70,21 @@ func Test_Bounds(t *testing.T) {
 	out.At(0, 0)
 }
 
+func Test_SameSizeReturnsOriginal(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 10, 10))
+	out := Resize(0, 0, img, Lanczos2)
+
+	if img != out {
+		t.Fail()
+	}
+
+	out = Resize(10, 10, img, Lanczos2)
+
+	if img != out {
+		t.Fail()
+	}
+}
+
 func Benchmark_BigResizeLanczos3(b *testing.B) {
 	var m image.Image
 	for i := 0; i < b.N; i++ {

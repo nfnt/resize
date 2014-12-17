@@ -86,6 +86,12 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 	if height == 0 {
 		height = uint(0.7 + float64(img.Bounds().Dy())/scaleY)
 	}
+
+	// Trivial case: return input image
+	if int(width) == img.Bounds().Dx() && int(height) == img.Bounds().Dy() {
+		return img
+	}
+
 	if interp == NearestNeighbor {
 		return resizeNearest(width, height, scaleX, scaleY, img, interp)
 	}
