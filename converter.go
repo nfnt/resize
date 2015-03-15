@@ -20,24 +20,24 @@ import "image"
 
 // Keep value in [0,255] range.
 func clampUint8(in int32) uint8 {
-	if in < 0 {
-		return 0
+	if uint32(in) < 256 {
+		return uint8(in)
 	}
 	if in > 255 {
 		return 255
 	}
-	return uint8(in)
+	return 0
 }
 
 // Keep value in [0,65535] range.
 func clampUint16(in int64) uint16 {
-	if in < 0 {
-		return 0
+	if uint64(in) < 65536 {
+		return uint16(in)
 	}
 	if in > 65535 {
 		return 65535
 	}
-	return uint16(in)
+	return 0
 }
 
 func resizeGeneric(in image.Image, out *image.RGBA64, scale float64, coeffs []int32, offset []int, filterLength int) {
@@ -102,12 +102,12 @@ func resizeRGBA(in *image.RGBA, out *image.RGBA, scale float64, coeffs []int16, 
 				if coeff != 0 {
 					xi := start + i
 					switch {
-					case xi < 0:
-						xi = 0
+					case uint(xi) < uint(maxX):
+						xi *= 4
 					case xi >= maxX:
 						xi = 4 * maxX
 					default:
-						xi *= 4
+						xi = 0
 					}
 					rgba[0] += int32(coeff) * int32(row[xi+0])
 					rgba[1] += int32(coeff) * int32(row[xi+1])
@@ -142,12 +142,12 @@ func resizeRGBA64(in *image.RGBA64, out *image.RGBA64, scale float64, coeffs []i
 				if coeff != 0 {
 					xi := start + i
 					switch {
-					case xi < 0:
-						xi = 0
+					case uint(xi) < uint(maxX):
+						xi *= 8
 					case xi >= maxX:
 						xi = 8 * maxX
 					default:
-						xi *= 8
+						xi = 0
 					}
 					rgba[0] += int64(coeff) * int64(uint16(row[xi+0])<<8|uint16(row[xi+1]))
 					rgba[1] += int64(coeff) * int64(uint16(row[xi+2])<<8|uint16(row[xi+3]))
@@ -222,12 +222,12 @@ func resizeGray16(in *image.Gray16, out *image.Gray16, scale float64, coeffs []i
 				if coeff != 0 {
 					xi := start + i
 					switch {
-					case xi < 0:
-						xi = 0
+					case uint(xi) < uint(maxX):
+						xi *= 2
 					case xi >= maxX:
 						xi = 2 * maxX
 					default:
-						xi *= 2
+						xi = 0
 					}
 					gray += int64(coeff) * int64(uint16(row[xi+0])<<8|uint16(row[xi+1]))
 					sum += int64(coeff)
@@ -258,12 +258,12 @@ func resizeYCbCr(in *ycc, out *ycc, scale float64, coeffs []int16, offset []int,
 				if coeff != 0 {
 					xi := start + i
 					switch {
-					case xi < 0:
-						xi = 0
+					case uint(xi) < uint(maxX):
+						xi *= 3
 					case xi >= maxX:
 						xi = 3 * maxX
 					default:
-						xi *= 3
+						xi = 0
 					}
 					p[0] += int32(coeff) * int32(row[xi+0])
 					p[1] += int32(coeff) * int32(row[xi+1])
@@ -295,12 +295,12 @@ func nearestYCbCr(in *ycc, out *ycc, scale float64, coeffs []bool, offset []int,
 				if coeffs[ci+i] {
 					xi := start + i
 					switch {
-					case xi < 0:
-						xi = 0
+					case uint(xi) < uint(maxX):
+						xi *= 3
 					case xi >= maxX:
 						xi = 3 * maxX
 					default:
-						xi *= 3
+						xi = 0
 					}
 					p[0] += float32(row[xi+0])
 					p[1] += float32(row[xi+1])

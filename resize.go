@@ -97,7 +97,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 	}
 
 	taps, kernel := interp.kernel()
-	cpus := runtime.NumCPU()
+	cpus := runtime.GOMAXPROCS(0)
 	wg := sync.WaitGroup{}
 
 	// Generic access to image.Image is slow in tight loops.
@@ -283,7 +283,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 
 func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, interp InterpolationFunction) image.Image {
 	taps, _ := interp.kernel()
-	cpus := runtime.NumCPU()
+	cpus := runtime.GOMAXPROCS(0)
 	wg := sync.WaitGroup{}
 
 	switch input := img.(type) {
