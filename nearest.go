@@ -94,12 +94,12 @@ func nearestRGBA(in *image.RGBA, out *image.RGBA, scale float64, coeffs []bool, 
 				if coeffs[ci+i] {
 					xi := start + i
 					switch {
-					case xi < 0:
-						xi = 0
+					case uint(xi) < uint(maxX):
+						xi *= 4
 					case xi >= maxX:
 						xi = 4 * maxX
 					default:
-						xi *= 4
+						xi = 0
 					}
 					rgba[0] += float32(row[xi+0])
 					rgba[1] += float32(row[xi+1])
@@ -133,12 +133,12 @@ func nearestRGBA64(in *image.RGBA64, out *image.RGBA64, scale float64, coeffs []
 				if coeffs[ci+i] {
 					xi := start + i
 					switch {
-					case xi < 0:
-						xi = 0
+					case uint(xi) < uint(maxX):
+						xi *= 8
 					case xi >= maxX:
 						xi = 8 * maxX
 					default:
-						xi *= 8
+						xi = 0
 					}
 					rgba[0] += float32(uint16(row[xi+0])<<8 | uint16(row[xi+1]))
 					rgba[1] += float32(uint16(row[xi+2])<<8 | uint16(row[xi+3]))
@@ -211,12 +211,12 @@ func nearestGray16(in *image.Gray16, out *image.Gray16, scale float64, coeffs []
 				if coeffs[ci+i] {
 					xi := start + i
 					switch {
-					case xi < 0:
-						xi = 0
+					case uint(xi) < uint(maxX):
+						xi *= 2
 					case xi >= maxX:
 						xi = 2 * maxX
 					default:
-						xi *= 2
+						xi = 0
 					}
 					gray += float32(uint16(row[xi+0])<<8 | uint16(row[xi+1]))
 					sum++

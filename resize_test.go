@@ -85,56 +85,105 @@ func Test_SameSizeReturnsOriginal(t *testing.T) {
 	}
 }
 
-func Benchmark_BigResizeLanczos3(b *testing.B) {
-	var m image.Image
-	for i := 0; i < b.N; i++ {
-		m = Resize(1000, 1000, img, Lanczos3)
-	}
-	m.At(0, 0)
-}
+const (
+	// Use a small image size for benchmarks. We don't want memory performance
+	// to affect the benchmark results.
+	benchMaxX = 250
+	benchMaxY = 250
 
-func Benchmark_Reduction(b *testing.B) {
-	largeImg := image.NewRGBA(image.Rect(0, 0, 1000, 1000))
+	// Resize values near the original size require increase the amount of time
+	// resize spends converting the image.
+	benchWidth  = 200
+	benchHeight = 200
+)
 
-	var m image.Image
-	for i := 0; i < b.N; i++ {
-		m = Resize(300, 300, largeImg, Bicubic)
-	}
-	m.At(0, 0)
-}
-
-// Benchmark resize of 16 MPix jpeg image to 800px width.
-func jpegThumb(b *testing.B, interp InterpolationFunction) {
-	input := image.NewYCbCr(image.Rect(0, 0, 4896, 3264), image.YCbCrSubsampleRatio422)
-
-	var output image.Image
-	for i := 0; i < b.N; i++ {
-		output = Resize(800, 0, input, interp)
+func benchRGBA(b *testing.B, interp InterpolationFunction) {
+	m := image.NewRGBA(image.Rect(0, 0, benchMaxX, benchMaxY))
+	// Initialize m's pixels to create a non-uniform image.
+	for y := m.Rect.Min.Y; y < m.Rect.Max.Y; y++ {
+		for x := m.Rect.Min.X; x < m.Rect.Max.X; x++ {
+			i := m.PixOffset(x, y)
+			m.Pix[i+0] = uint8(y + 4*x)
+			m.Pix[i+1] = uint8(y + 4*x)
+			m.Pix[i+2] = uint8(y + 4*x)
+			m.Pix[i+3] = uint8(4*y + x)
+		}
 	}
 
-	output.At(0, 0)
+	var out image.Image
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		out = Resize(benchWidth, benchHeight, m, interp)
+	}
+	out.At(0, 0)
 }
 
-func Benchmark_LargeJpegThumbNearestNeighbor(b *testing.B) {
-	jpegThumb(b, NearestNeighbor)
+// The names of some interpolation functions are truncated so that the columns
+// of 'go test -bench' line up.
+func Benchmark_Nearest_RGBA(b *testing.B) {
+	benchRGBA(b, NearestNeighbor)
 }
 
-func Benchmark_LargeJpegThumbBilinear(b *testing.B) {
-	jpegThumb(b, Bilinear)
+func Benchmark_Bilinear_RGBA(b *testing.B) {
+	benchRGBA(b, Bilinear)
 }
 
-func Benchmark_LargeJpegThumbBicubic(b *testing.B) {
-	jpegThumb(b, Bicubic)
+func Benchmark_Bicubic_RGBA(b *testing.B) {
+	benchRGBA(b, Bicubic)
 }
 
-func Benchmark_LargeJpegThumbMitchellNetravali(b *testing.B) {
-	jpegThumb(b, MitchellNetravali)
+func Benchmark_Mitchell_RGBA(b *testing.B) {
+	benchRGBA(b, MitchellNetravali)
 }
 
-func Benchmark_LargeJpegThumbLanczos2(b *testing.B) {
-	jpegThumb(b, Lanczos2)
+func Benchmark_Lanczos2_RGBA(b *testing.B) {
+	benchRGBA(b, Lanczos2)
 }
 
-func Benchmark_LargeJpegThumbLanczos3(b *testing.B) {
-	jpegThumb(b, Lanczos3)
+func Benchmark_Lanczos3_RGBA(b *testing.B) {
+	benchRGBA(b, Lanczos3)
+}
+
+func benchYCbCr(b *testing.B, interp InterpolationFunction) {
+	m := image.NewYCbCr(image.Rect(0, 0, benchMaxX, benchMaxY), image.YCbCrSubsampleRatio422)
+	// Initialize m's pixels to create a non-uniform image.
+	for y := m.Rect.Min.Y; y < m.Rect.Max.Y; y++ {
+		for x := m.Rect.Min.X; x < m.Rect.Max.X; x++ {
+			yi := m.YOffset(x, y)
+			ci := m.COffset(x, y)
+			m.Y[yi] = uint8(16*y + x)
+			m.Cb[ci] = uint8(y + 16*x)
+			m.Cr[ci] = uint8(y + 16*x)
+		}
+	}
+	var out image.Image
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		out = Resize(benchWidth, benchHeight, m, interp)
+	}
+	out.At(0, 0)
+}
+
+func Benchmark_Nearest_YCC(b *testing.B) {
+	benchYCbCr(b, NearestNeighbor)
+}
+
+func Benchmark_Bilinear_YCC(b *testing.B) {
+	benchYCbCr(b, Bilinear)
+}
+
+func Benchmark_Bicubic_YCC(b *testing.B) {
+	benchYCbCr(b, Bicubic)
+}
+
+func Benchmark_Mitchell_YCC(b *testing.B) {
+	benchYCbCr(b, MitchellNetravali)
+}
+
+func Benchmark_Lanczos2_YCC(b *testing.B) {
+	benchYCbCr(b, Lanczos2)
+}
+
+func Benchmark_Lanczos3_YCC(b *testing.B) {
+	benchYCbCr(b, Lanczos3)
 }
