@@ -20,6 +20,9 @@ import "image"
 
 // Keep value in [0,255] range.
 func clampUint8(in int32) uint8 {
+	// casting a negative int to an uint will result in an overflown large int.
+	// this behavior will be exploited here and in other functions to archive
+	// a higher performance.
 	if uint32(in) < 256 {
 		return uint8(in)
 	}
