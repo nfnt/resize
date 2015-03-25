@@ -375,6 +375,35 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		}
 		wg.Wait()
 		return result
+	case *image.NRGBA:
+		// 8-bit precision
+		temp := image.NewNRGBA(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
+		result := image.NewNRGBA(image.Rect(0, 0, int(width), int(height)))
+
+		// horizontal filter, results in transposed temporary image
+		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), taps, blur, scaleX)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(temp, i, cpus).(*image.RGBA)
+			go func() {
+				defer wg.Done()
+				nearestNRGBA(input, slice, scaleX, coeffs, offset, filterLength)
+			}()
+		}
+		wg.Wait()
+
+		// horizontal filter on transposed image, result is not transposed
+		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), taps, blur, scaleY)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(result, i, cpus).(*image.RGBA)
+			go func() {
+				defer wg.Done()
+				nearestNRGBA(temp, slice, scaleY, coeffs, offset, filterLength)
+			}()
+		}
+		wg.Wait()
+		return result
 	case *image.YCbCr:
 		// 8-bit precision
 		// accessing the YCbCr arrays in a tight loop is slow.
@@ -430,6 +459,35 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 			go func() {
 				defer wg.Done()
 				nearestRGBA64(temp, slice, scaleY, coeffs, offset, filterLength)
+			}()
+		}
+		wg.Wait()
+		return result
+	case *image.NRGBA64:
+		// 16-bit precision
+		temp := image.NewNRGBA64(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
+		result := image.NewNRGBA64(image.Rect(0, 0, int(width), int(height)))
+
+		// horizontal filter, results in transposed temporary image
+		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), taps, blur, scaleX)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(temp, i, cpus).(*image.RGBA64)
+			go func() {
+				defer wg.Done()
+				nearestNRGBA64(input, slice, scaleX, coeffs, offset, filterLength)
+			}()
+		}
+		wg.Wait()
+
+		// horizontal filter on transposed image, result is not transposed
+		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), taps, blur, scaleY)
+		wg.Add(cpus)
+		for i := 0; i < cpus; i++ {
+			slice := makeSlice(result, i, cpus).(*image.RGBA64)
+			go func() {
+				defer wg.Done()
+				nearestNRGBA64(temp, slice, scaleY, coeffs, offset, filterLength)
 			}()
 		}
 		wg.Wait()
