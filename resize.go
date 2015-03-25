@@ -384,7 +384,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), taps, blur, scaleX)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(temp, i, cpus).(*image.RGBA)
+			slice := makeSlice(temp, i, cpus).(*image.NRGBA)
 			go func() {
 				defer wg.Done()
 				nearestNRGBA(input, slice, scaleX, coeffs, offset, filterLength)
@@ -396,7 +396,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), taps, blur, scaleY)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(result, i, cpus).(*image.RGBA)
+			slice := makeSlice(result, i, cpus).(*image.NRGBA)
 			go func() {
 				defer wg.Done()
 				nearestNRGBA(temp, slice, scaleY, coeffs, offset, filterLength)
@@ -472,7 +472,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		coeffs, offset, filterLength := createWeightsNearest(temp.Bounds().Dy(), taps, blur, scaleX)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(temp, i, cpus).(*image.RGBA64)
+			slice := makeSlice(temp, i, cpus).(*image.NRGBA64)
 			go func() {
 				defer wg.Done()
 				nearestNRGBA64(input, slice, scaleX, coeffs, offset, filterLength)
@@ -484,7 +484,7 @@ func resizeNearest(width, height uint, scaleX, scaleY float64, img image.Image, 
 		coeffs, offset, filterLength = createWeightsNearest(result.Bounds().Dy(), taps, blur, scaleY)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(result, i, cpus).(*image.RGBA64)
+			slice := makeSlice(result, i, cpus).(*image.NRGBA64)
 			go func() {
 				defer wg.Done()
 				nearestNRGBA64(temp, slice, scaleY, coeffs, offset, filterLength)
