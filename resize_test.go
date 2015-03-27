@@ -85,6 +85,26 @@ func Test_SameSizeReturnsOriginal(t *testing.T) {
 	}
 }
 
+func Test_PixelCoordinates(t *testing.T) {
+	checkers := image.NewGray(image.Rect(0, 0, 4, 4))
+	checkers.Pix = []uint8{
+		255, 0, 255, 0,
+		0, 255, 0, 255,
+		255, 0, 255, 0,
+		0, 255, 0, 255,
+	}
+
+	resized := Resize(12, 12, checkers, NearestNeighbor).(*image.Gray)
+
+	if resized.Pix[0] != 255 || resized.Pix[1] != 255 || resized.Pix[2] != 255 {
+		t.Fail()
+	}
+
+	if resized.Pix[3] != 0 || resized.Pix[4] != 0 || resized.Pix[5] != 0 {
+		t.Fail()
+	}
+}
+
 const (
 	// Use a small image size for benchmarks. We don't want memory performance
 	// to affect the benchmark results.
