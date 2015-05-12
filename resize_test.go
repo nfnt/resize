@@ -2,7 +2,6 @@ package resize
 
 import (
 	"image"
-	"fmt"
 	"image/color"
 	"runtime"
 	"testing"
@@ -95,8 +94,7 @@ func Test_ResizeWithPremultipliedAlpha(t *testing.T) {
 
 	out := Resize(1, 2, img, MitchellNetravali)
 
-	fmt.Println(out)
-	outputColor := out.At(0,0).(color.NRGBA)
+	outputColor := out.At(0, 0).(color.NRGBA)
 	if outputColor.R != 0xFF {
 		t.Fail()
 	}
