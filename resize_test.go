@@ -2,6 +2,7 @@ package resize
 
 import (
 	"image"
+	"fmt"
 	"image/color"
 	"runtime"
 	"testing"
@@ -81,6 +82,22 @@ func Test_SameSizeReturnsOriginal(t *testing.T) {
 	out = Resize(10, 10, img, Lanczos2)
 
 	if img != out {
+		t.Fail()
+	}
+}
+
+func Test_ResizeWithPremultipliedAlpha(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 1, 4))
+	for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
+		// 0x80 = 0.5 * 0xFF.
+		img.SetRGBA(0, y, color.RGBA{0x80, 0x80, 0x80, 0x80})
+	}
+
+	out := Resize(1, 2, img, MitchellNetravali)
+
+	fmt.Println(out)
+	outputColor := out.At(0,0).(color.NRGBA)
+	if outputColor.R != 0xFF {
 		t.Fail()
 	}
 }
