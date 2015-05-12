@@ -105,6 +105,21 @@ func Test_PixelCoordinates(t *testing.T) {
 	}
 }
 
+func Test_ResizeWithPremultipliedAlpha(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 1, 4))
+	for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
+		// 0x80 = 0.5 * 0xFF.
+		img.SetRGBA(0, y, color.RGBA{0x80, 0x80, 0x80, 0x80})
+	}
+
+	out := Resize(1, 2, img, MitchellNetravali)
+
+	outputColor := out.At(0, 0).(color.NRGBA)
+	if outputColor.R != 0xFF {
+		t.Fail()
+	}
+}
+
 const (
 	// Use a small image size for benchmarks. We don't want memory performance
 	// to affect the benchmark results.
