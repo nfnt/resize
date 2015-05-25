@@ -46,7 +46,7 @@ func Test_CorrectResize(t *testing.T) {
 	}
 }
 
-func Test_SameColor(t *testing.T) {
+func Test_SameColorWithRGBA(t *testing.T) {
 	img := image.NewRGBA(image.Rect(0, 0, 20, 20))
 	for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
 		for x := img.Bounds().Min.X; x < img.Bounds().Max.X; x++ {
@@ -56,7 +56,7 @@ func Test_SameColor(t *testing.T) {
 	out := Resize(10, 10, img, Lanczos3)
 	for y := out.Bounds().Min.Y; y < out.Bounds().Max.Y; y++ {
 		for x := out.Bounds().Min.X; x < out.Bounds().Max.X; x++ {
-			color := img.At(x, y).(color.RGBA)
+			color := out.At(x, y).(color.NRGBA)
 			if color.R != 0x80 || color.G != 0x80 || color.B != 0x80 || color.A != 0xFF {
 				t.Fail()
 			}
