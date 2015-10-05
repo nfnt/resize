@@ -1,3 +1,5 @@
+// +build go1.5
+
 /*
 Copyright (c) 2014, Charlie Vieth <charlie.vieth@gmail.com>
 
@@ -33,6 +35,8 @@ func TestImage(t *testing.T) {
 		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio422),
 		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio440),
 		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio444),
+		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio411),
+		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio410),
 	}
 	for _, m := range testImage {
 		if !image.Rect(0, 0, 10, 10).Eq(m.Bounds()) {
@@ -60,8 +64,9 @@ func TestConvertYCbCr(t *testing.T) {
 		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio422),
 		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio440),
 		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio444),
+		image.NewYCbCr(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio411),
+		image.NewYCbCr(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio410),
 	}
-
 	for _, img := range testImage {
 		m := img.(*image.YCbCr)
 		for y := m.Rect.Min.Y; y < m.Rect.Max.Y; y++ {
