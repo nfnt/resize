@@ -21,6 +21,12 @@ import (
 	"image/color"
 )
 
+// Allow compilation with Go versions before 1.5.
+const (
+	yCbCrSubsampleRatio411 = image.YCbCrSubsampleRatio(4)
+	yCbCrSubsampleRatio410 = image.YCbCrSubsampleRatio(5)
+)
+
 // ycc is an in memory YCbCr image.  The Y, Cb and Cr samples are held in a
 // single slice to increase resizing performance.
 type ycc struct {
@@ -137,7 +143,7 @@ func (p *ycc) YCbCr() *image.YCbCr {
 				off += 3
 			}
 		}
-	case image.YCbCrSubsampleRatio411:
+	case yCbCrSubsampleRatio411:
 		for y := ycbcr.Rect.Min.Y; y < ycbcr.Rect.Max.Y; y++ {
 			yy := (y - ycbcr.Rect.Min.Y) * ycbcr.YStride
 			cy := (y - ycbcr.Rect.Min.Y) * ycbcr.CStride
@@ -151,7 +157,7 @@ func (p *ycc) YCbCr() *image.YCbCr {
 				off += 3
 			}
 		}
-	case image.YCbCrSubsampleRatio410:
+	case yCbCrSubsampleRatio410:
 		for y := ycbcr.Rect.Min.Y; y < ycbcr.Rect.Max.Y; y++ {
 			yy := (y - ycbcr.Rect.Min.Y) * ycbcr.YStride
 			cy := (y/2 - ycbcr.Rect.Min.Y/2) * ycbcr.CStride
@@ -235,7 +241,7 @@ func imageYCbCrToYCC(in *image.YCbCr) *ycc {
 				off += 3
 			}
 		}
-	case image.YCbCrSubsampleRatio411:
+	case yCbCrSubsampleRatio411:
 		for y := in.Rect.Min.Y; y < in.Rect.Max.Y; y++ {
 			yy := (y - in.Rect.Min.Y) * in.YStride
 			cy := (y - in.Rect.Min.Y) * in.CStride
@@ -249,7 +255,7 @@ func imageYCbCrToYCC(in *image.YCbCr) *ycc {
 				off += 3
 			}
 		}
-	case image.YCbCrSubsampleRatio410:
+	case yCbCrSubsampleRatio410:
 		for y := in.Rect.Min.Y; y < in.Rect.Max.Y; y++ {
 			yy := (y - in.Rect.Min.Y) * in.YStride
 			cy := (y/2 - in.Rect.Min.Y/2) * in.CStride
