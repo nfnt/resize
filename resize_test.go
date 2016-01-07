@@ -56,7 +56,7 @@ func Test_SameColorWithRGBA(t *testing.T) {
 	out := Resize(10, 10, img, Lanczos3)
 	for y := out.Bounds().Min.Y; y < out.Bounds().Max.Y; y++ {
 		for x := out.Bounds().Min.X; x < out.Bounds().Max.X; x++ {
-			color := out.At(x, y).(color.NRGBA)
+			color := out.At(x, y).(color.RGBA)
 			if color.R != 0x80 || color.G != 0x80 || color.B != 0x80 || color.A != 0xFF {
 				t.Errorf("%+v", color)
 			}
@@ -74,7 +74,7 @@ func Test_SameColorWithNRGBA(t *testing.T) {
 	out := Resize(10, 10, img, Lanczos3)
 	for y := out.Bounds().Min.Y; y < out.Bounds().Max.Y; y++ {
 		for x := out.Bounds().Min.X; x < out.Bounds().Max.X; x++ {
-			color := out.At(x, y).(color.NRGBA)
+			color := out.At(x, y).(color.RGBA)
 			if color.R != 0x80 || color.G != 0x80 || color.B != 0x80 || color.A != 0xFF {
 				t.Errorf("%+v", color)
 			}
@@ -92,7 +92,7 @@ func Test_SameColorWithRGBA64(t *testing.T) {
 	out := Resize(10, 10, img, Lanczos3)
 	for y := out.Bounds().Min.Y; y < out.Bounds().Max.Y; y++ {
 		for x := out.Bounds().Min.X; x < out.Bounds().Max.X; x++ {
-			color := out.At(x, y).(color.NRGBA64)
+			color := out.At(x, y).(color.RGBA64)
 			if color.R != 0x8000 || color.G != 0x8000 || color.B != 0x8000 || color.A != 0xFFFF {
 				t.Errorf("%+v", color)
 			}
@@ -110,7 +110,7 @@ func Test_SameColorWithNRGBA64(t *testing.T) {
 	out := Resize(10, 10, img, Lanczos3)
 	for y := out.Bounds().Min.Y; y < out.Bounds().Max.Y; y++ {
 		for x := out.Bounds().Min.X; x < out.Bounds().Max.X; x++ {
-			color := out.At(x, y).(color.NRGBA64)
+			color := out.At(x, y).(color.RGBA64)
 			if color.R != 0x8000 || color.G != 0x8000 || color.B != 0x8000 || color.A != 0xFFFF {
 				t.Errorf("%+v", color)
 			}
@@ -204,8 +204,8 @@ func Test_ResizeWithPremultipliedAlpha(t *testing.T) {
 
 	out := Resize(1, 2, img, MitchellNetravali)
 
-	outputColor := out.At(0, 0).(color.NRGBA)
-	if outputColor.R != 0xFF {
+	outputColor := out.At(0, 0).(color.RGBA)
+	if outputColor.R != 0x80 {
 		t.Fail()
 	}
 }
@@ -213,8 +213,8 @@ func Test_ResizeWithPremultipliedAlpha(t *testing.T) {
 func Test_ResizeWithTranslucentColor(t *testing.T) {
 	img := image.NewNRGBA(image.Rect(0, 0, 1, 2))
 
-    // Set the pixel colors to an "invisible green" and white.
-    // After resizing, the green shouldn't be visible.
+	// Set the pixel colors to an "invisible green" and white.
+	// After resizing, the green shouldn't be visible.
 	img.SetNRGBA(0, 0, color.NRGBA{0x00, 0xFF, 0x00, 0x00})
 	img.SetNRGBA(0, 1, color.NRGBA{0x00, 0x00, 0x00, 0xFF})
 

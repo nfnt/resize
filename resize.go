@@ -105,14 +105,14 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 	switch input := img.(type) {
 	case *image.RGBA:
 		// 8-bit precision
-		temp := image.NewNRGBA(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
-		result := image.NewNRGBA(image.Rect(0, 0, int(width), int(height)))
+		temp := image.NewRGBA(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
+		result := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
 
 		// horizontal filter, results in transposed temporary image
 		coeffs, offset, filterLength := createWeights8(temp.Bounds().Dy(), taps, blur, scaleX, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(temp, i, cpus).(*image.NRGBA)
+			slice := makeSlice(temp, i, cpus).(*image.RGBA)
 			go func() {
 				defer wg.Done()
 				resizeRGBA(input, slice, scaleX, coeffs, offset, filterLength)
@@ -124,24 +124,24 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		coeffs, offset, filterLength = createWeights8(result.Bounds().Dy(), taps, blur, scaleY, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(result, i, cpus).(*image.NRGBA)
+			slice := makeSlice(result, i, cpus).(*image.RGBA)
 			go func() {
 				defer wg.Done()
-				resizeNRGBA(temp, slice, scaleY, coeffs, offset, filterLength)
+				resizeRGBA(temp, slice, scaleY, coeffs, offset, filterLength)
 			}()
 		}
 		wg.Wait()
 		return result
 	case *image.NRGBA:
 		// 8-bit precision
-		temp := image.NewNRGBA(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
-		result := image.NewNRGBA(image.Rect(0, 0, int(width), int(height)))
+		temp := image.NewRGBA(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
+		result := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
 
 		// horizontal filter, results in transposed temporary image
 		coeffs, offset, filterLength := createWeights8(temp.Bounds().Dy(), taps, blur, scaleX, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(temp, i, cpus).(*image.NRGBA)
+			slice := makeSlice(temp, i, cpus).(*image.RGBA)
 			go func() {
 				defer wg.Done()
 				resizeNRGBA(input, slice, scaleX, coeffs, offset, filterLength)
@@ -153,10 +153,10 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		coeffs, offset, filterLength = createWeights8(result.Bounds().Dy(), taps, blur, scaleY, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(result, i, cpus).(*image.NRGBA)
+			slice := makeSlice(result, i, cpus).(*image.RGBA)
 			go func() {
 				defer wg.Done()
-				resizeNRGBA(temp, slice, scaleY, coeffs, offset, filterLength)
+				resizeRGBA(temp, slice, scaleY, coeffs, offset, filterLength)
 			}()
 		}
 		wg.Wait()
@@ -194,14 +194,14 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		return result.YCbCr()
 	case *image.RGBA64:
 		// 16-bit precision
-		temp := image.NewNRGBA64(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
-		result := image.NewNRGBA64(image.Rect(0, 0, int(width), int(height)))
+		temp := image.NewRGBA64(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
+		result := image.NewRGBA64(image.Rect(0, 0, int(width), int(height)))
 
 		// horizontal filter, results in transposed temporary image
 		coeffs, offset, filterLength := createWeights16(temp.Bounds().Dy(), taps, blur, scaleX, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(temp, i, cpus).(*image.NRGBA64)
+			slice := makeSlice(temp, i, cpus).(*image.RGBA64)
 			go func() {
 				defer wg.Done()
 				resizeRGBA64(input, slice, scaleX, coeffs, offset, filterLength)
@@ -213,24 +213,24 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		coeffs, offset, filterLength = createWeights16(result.Bounds().Dy(), taps, blur, scaleY, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(result, i, cpus).(*image.NRGBA64)
+			slice := makeSlice(result, i, cpus).(*image.RGBA64)
 			go func() {
 				defer wg.Done()
-				resizeNRGBA64(temp, slice, scaleY, coeffs, offset, filterLength)
+				resizeRGBA64(temp, slice, scaleY, coeffs, offset, filterLength)
 			}()
 		}
 		wg.Wait()
 		return result
 	case *image.NRGBA64:
 		// 16-bit precision
-		temp := image.NewNRGBA64(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
-		result := image.NewNRGBA64(image.Rect(0, 0, int(width), int(height)))
+		temp := image.NewRGBA64(image.Rect(0, 0, input.Bounds().Dy(), int(width)))
+		result := image.NewRGBA64(image.Rect(0, 0, int(width), int(height)))
 
 		// horizontal filter, results in transposed temporary image
 		coeffs, offset, filterLength := createWeights16(temp.Bounds().Dy(), taps, blur, scaleX, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(temp, i, cpus).(*image.NRGBA64)
+			slice := makeSlice(temp, i, cpus).(*image.RGBA64)
 			go func() {
 				defer wg.Done()
 				resizeNRGBA64(input, slice, scaleX, coeffs, offset, filterLength)
@@ -242,10 +242,10 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		coeffs, offset, filterLength = createWeights16(result.Bounds().Dy(), taps, blur, scaleY, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(result, i, cpus).(*image.NRGBA64)
+			slice := makeSlice(result, i, cpus).(*image.RGBA64)
 			go func() {
 				defer wg.Done()
-				resizeNRGBA64(temp, slice, scaleY, coeffs, offset, filterLength)
+				resizeRGBA64(temp, slice, scaleY, coeffs, offset, filterLength)
 			}()
 		}
 		wg.Wait()
@@ -310,14 +310,14 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		return result
 	default:
 		// 16-bit precision
-		temp := image.NewNRGBA64(image.Rect(0, 0, img.Bounds().Dy(), int(width)))
-		result := image.NewNRGBA64(image.Rect(0, 0, int(width), int(height)))
+		temp := image.NewRGBA64(image.Rect(0, 0, img.Bounds().Dy(), int(width)))
+		result := image.NewRGBA64(image.Rect(0, 0, int(width), int(height)))
 
 		// horizontal filter, results in transposed temporary image
 		coeffs, offset, filterLength := createWeights16(temp.Bounds().Dy(), taps, blur, scaleX, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(temp, i, cpus).(*image.NRGBA64)
+			slice := makeSlice(temp, i, cpus).(*image.RGBA64)
 			go func() {
 				defer wg.Done()
 				resizeGeneric(img, slice, scaleX, coeffs, offset, filterLength)
@@ -329,10 +329,10 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 		coeffs, offset, filterLength = createWeights16(result.Bounds().Dy(), taps, blur, scaleY, kernel)
 		wg.Add(cpus)
 		for i := 0; i < cpus; i++ {
-			slice := makeSlice(result, i, cpus).(*image.NRGBA64)
+			slice := makeSlice(result, i, cpus).(*image.RGBA64)
 			go func() {
 				defer wg.Done()
-				resizeNRGBA64(temp, slice, scaleY, coeffs, offset, filterLength)
+				resizeRGBA64(temp, slice, scaleY, coeffs, offset, filterLength)
 			}()
 		}
 		wg.Wait()
