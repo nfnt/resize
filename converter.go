@@ -76,14 +76,23 @@ func resizeGeneric(in image.Image, out *image.NRGBA64, scale float64, coeffs []i
 
 			offset := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*8
 			// Reverse alpha-premultiplication
+			r := rgba[0] / sum
+			g := rgba[1] / sum
+			b := rgba[2] / sum
 			a := rgba[3] / sum
-			value := clampUint16(rgba[0] * 0xffff / a / sum)
+
+			if a != 0 {
+				r = r * 0xffff / a
+				g = g * 0xffff / a
+				b = b * 0xffff / a
+			}
+			value := clampUint16(r)
 			out.Pix[offset+0] = uint8(value >> 8)
 			out.Pix[offset+1] = uint8(value)
-			value = clampUint16(rgba[1] * 0xffff / a / sum)
+			value = clampUint16(g)
 			out.Pix[offset+2] = uint8(value >> 8)
 			out.Pix[offset+3] = uint8(value)
-			value = clampUint16(rgba[2] * 0xffff / a / sum)
+			value = clampUint16(b)
 			out.Pix[offset+4] = uint8(value >> 8)
 			out.Pix[offset+5] = uint8(value)
 			value = clampUint16(a)
@@ -127,10 +136,20 @@ func resizeRGBA(in *image.RGBA, out *image.NRGBA, scale float64, coeffs []int16,
 
 			xo := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*4
 			// Reverse alpha-premultiplication
+			r := rgba[0] / sum
+			g := rgba[1] / sum
+			b := rgba[2] / sum
 			a := rgba[3] / sum
-			out.Pix[xo+0] = clampUint8(rgba[0] * 0xff / a / sum)
-			out.Pix[xo+1] = clampUint8(rgba[1] * 0xff / a / sum)
-			out.Pix[xo+2] = clampUint8(rgba[2] * 0xff / a / sum)
+
+			if a != 0 {
+				r = r * 0xff / a
+				g = g * 0xff / a
+				b = b * 0xff / a
+			}
+
+			out.Pix[xo+0] = clampUint8(r)
+			out.Pix[xo+1] = clampUint8(g)
+			out.Pix[xo+2] = clampUint8(b)
 			out.Pix[xo+3] = clampUint8(a)
 		}
 	}
@@ -172,10 +191,20 @@ func resizeNRGBA(in *image.NRGBA, out *image.NRGBA, scale float64, coeffs []int1
 
 			xo := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*4
 			// Reverse alpha-premultiplication
+			r := rgba[0] / sum
+			g := rgba[1] / sum
+			b := rgba[2] / sum
 			a := rgba[3] / sum
-			out.Pix[xo+0] = clampUint8(rgba[0] * 0xff / a / sum)
-			out.Pix[xo+1] = clampUint8(rgba[1] * 0xff / a / sum)
-			out.Pix[xo+2] = clampUint8(rgba[2] * 0xff / a / sum)
+
+			if a != 0 {
+				r = r * 0xff / a
+				g = g * 0xff / a
+				b = b * 0xff / a
+			}
+
+			out.Pix[xo+0] = clampUint8(r)
+			out.Pix[xo+1] = clampUint8(g)
+			out.Pix[xo+2] = clampUint8(b)
 			out.Pix[xo+3] = clampUint8(a)
 		}
 	}
@@ -215,14 +244,23 @@ func resizeRGBA64(in *image.RGBA64, out *image.NRGBA64, scale float64, coeffs []
 
 			xo := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*8
 			// Reverse alpha-premultiplication
+			r := rgba[0] / sum
+			g := rgba[1] / sum
+			b := rgba[2] / sum
 			a := rgba[3] / sum
-			value := clampUint16(rgba[0] * 0xffff / a / sum)
+
+			if a != 0 {
+				r = r * 0xffff / a
+				g = g * 0xffff / a
+				b = b * 0xffff / a
+			}
+			value := clampUint16(r)
 			out.Pix[xo+0] = uint8(value >> 8)
 			out.Pix[xo+1] = uint8(value)
-			value = clampUint16(rgba[1] * 0xffff / a / sum)
+			value = clampUint16(g)
 			out.Pix[xo+2] = uint8(value >> 8)
 			out.Pix[xo+3] = uint8(value)
-			value = clampUint16(rgba[2] * 0xffff / a / sum)
+			value = clampUint16(b)
 			out.Pix[xo+4] = uint8(value >> 8)
 			out.Pix[xo+5] = uint8(value)
 			value = clampUint16(a)
@@ -255,7 +293,7 @@ func resizeNRGBA64(in *image.NRGBA64, out *image.NRGBA64, scale float64, coeffs 
 					default:
 						xi = 0
 					}
-					
+
 					// Forward alpha-premultiplication
 					a := int64(row[xi+6])<<8 | int64(row[xi+7])
 					rgba[0] += int64(coeff) * (int64(row[xi+0])<<8 | int64(row[xi+1])) * a / 0xffff
@@ -268,14 +306,23 @@ func resizeNRGBA64(in *image.NRGBA64, out *image.NRGBA64, scale float64, coeffs 
 
 			xo := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*8
 			// Reverse alpha-premultiplication
+			r := rgba[0] / sum
+			g := rgba[1] / sum
+			b := rgba[2] / sum
 			a := rgba[3] / sum
-			value := clampUint16(rgba[0] * 0xffff / a / sum)
+
+			if a != 0 {
+				r = r * 0xffff / a
+				g = g * 0xffff / a
+				b = b * 0xffff / a
+			}
+			value := clampUint16(r)
 			out.Pix[xo+0] = uint8(value >> 8)
 			out.Pix[xo+1] = uint8(value)
-			value = clampUint16(rgba[1] * 0xffff / a / sum)
+			value = clampUint16(g)
 			out.Pix[xo+2] = uint8(value >> 8)
 			out.Pix[xo+3] = uint8(value)
-			value = clampUint16(rgba[2] * 0xffff / a / sum)
+			value = clampUint16(b)
 			out.Pix[xo+4] = uint8(value >> 8)
 			out.Pix[xo+5] = uint8(value)
 			value = clampUint16(a)
