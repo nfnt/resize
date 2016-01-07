@@ -63,17 +63,8 @@ func resizeGeneric(in image.Image, out *image.NRGBA64, scale float64, coeffs []i
 					case xi >= maxX:
 						xi = maxX
 					}
+					// Forward alpha-premultiplication (if needed)
 					r, g, b, a := in.At(xi+in.Bounds().Min.X, x+in.Bounds().Min.Y).RGBA()
-
-					// reverse alpha-premultiplication.
-					if a != 0 {
-						r *= 0xffff
-						r /= a
-						g *= 0xffff
-						g /= a
-						b *= 0xffff
-						b /= a
-					}
 
 					rgba[0] += int64(coeff) * int64(r)
 					rgba[1] += int64(coeff) * int64(g)
@@ -84,16 +75,18 @@ func resizeGeneric(in image.Image, out *image.NRGBA64, scale float64, coeffs []i
 			}
 
 			offset := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*8
-			value := clampUint16(rgba[0] / sum)
+			// Reverse alpha-premultiplication
+			a := rgba[3] / sum
+			value := clampUint16(rgba[0] * 0xffff / a / sum)
 			out.Pix[offset+0] = uint8(value >> 8)
 			out.Pix[offset+1] = uint8(value)
-			value = clampUint16(rgba[1] / sum)
+			value = clampUint16(rgba[1] * 0xffff / a / sum)
 			out.Pix[offset+2] = uint8(value >> 8)
 			out.Pix[offset+3] = uint8(value)
-			value = clampUint16(rgba[2] / sum)
+			value = clampUint16(rgba[2] * 0xffff / a / sum)
 			out.Pix[offset+4] = uint8(value >> 8)
 			out.Pix[offset+5] = uint8(value)
-			value = clampUint16(rgba[3] / sum)
+			value = clampUint16(a)
 			out.Pix[offset+6] = uint8(value >> 8)
 			out.Pix[offset+7] = uint8(value)
 		}
@@ -124,34 +117,21 @@ func resizeRGBA(in *image.RGBA, out *image.NRGBA, scale float64, coeffs []int16,
 						xi = 0
 					}
 
-					r := uint32(row[xi+0])
-					g := uint32(row[xi+1])
-					b := uint32(row[xi+2])
-					a := uint32(row[xi+3])
-
-					// reverse alpha-premultiplication.
-					if a != 0 {
-						r *= 0xff
-						r /= a
-						g *= 0xff
-						g /= a
-						b *= 0xff
-						b /= a
-					}
-
-					rgba[0] += int32(coeff) * int32(r)
-					rgba[1] += int32(coeff) * int32(g)
-					rgba[2] += int32(coeff) * int32(b)
-					rgba[3] += int32(coeff) * int32(a)
+					rgba[0] += int32(coeff) * int32(row[xi+0])
+					rgba[1] += int32(coeff) * int32(row[xi+1])
+					rgba[2] += int32(coeff) * int32(row[xi+2])
+					rgba[3] += int32(coeff) * int32(row[xi+3])
 					sum += int32(coeff)
 				}
 			}
 
 			xo := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*4
-			out.Pix[xo+0] = clampUint8(rgba[0] / sum)
-			out.Pix[xo+1] = clampUint8(rgba[1] / sum)
-			out.Pix[xo+2] = clampUint8(rgba[2] / sum)
-			out.Pix[xo+3] = clampUint8(rgba[3] / sum)
+			// Reverse alpha-premultiplication
+			a := rgba[3] / sum
+			out.Pix[xo+0] = clampUint8(rgba[0] * 0xff / a / sum)
+			out.Pix[xo+1] = clampUint8(rgba[1] * 0xff / a / sum)
+			out.Pix[xo+2] = clampUint8(rgba[2] * 0xff / a / sum)
+			out.Pix[xo+3] = clampUint8(a)
 		}
 	}
 }
@@ -179,19 +159,24 @@ func resizeNRGBA(in *image.NRGBA, out *image.NRGBA, scale float64, coeffs []int1
 					default:
 						xi = 0
 					}
-					rgba[0] += int32(coeff) * int32(row[xi+0])
-					rgba[1] += int32(coeff) * int32(row[xi+1])
-					rgba[2] += int32(coeff) * int32(row[xi+2])
-					rgba[3] += int32(coeff) * int32(row[xi+3])
+
+					// Forward alpha-premultiplication
+					a := int32(row[xi+3])
+					rgba[0] += int32(coeff) * int32(row[xi+0]) * a / 0xff
+					rgba[1] += int32(coeff) * int32(row[xi+1]) * a / 0xff
+					rgba[2] += int32(coeff) * int32(row[xi+2]) * a / 0xff
+					rgba[3] += int32(coeff) * a
 					sum += int32(coeff)
 				}
 			}
 
 			xo := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*4
-			out.Pix[xo+0] = clampUint8(rgba[0] / sum)
-			out.Pix[xo+1] = clampUint8(rgba[1] / sum)
-			out.Pix[xo+2] = clampUint8(rgba[2] / sum)
-			out.Pix[xo+3] = clampUint8(rgba[3] / sum)
+			// Reverse alpha-premultiplication
+			a := rgba[3] / sum
+			out.Pix[xo+0] = clampUint8(rgba[0] * 0xff / a / sum)
+			out.Pix[xo+1] = clampUint8(rgba[1] * 0xff / a / sum)
+			out.Pix[xo+2] = clampUint8(rgba[2] * 0xff / a / sum)
+			out.Pix[xo+3] = clampUint8(a)
 		}
 	}
 }
@@ -220,40 +205,27 @@ func resizeRGBA64(in *image.RGBA64, out *image.NRGBA64, scale float64, coeffs []
 						xi = 0
 					}
 
-					r := uint32(uint16(row[xi+0])<<8 | uint16(row[xi+1]))
-					g := uint32(uint16(row[xi+2])<<8 | uint16(row[xi+3]))
-					b := uint32(uint16(row[xi+4])<<8 | uint16(row[xi+5]))
-					a := uint32(uint16(row[xi+6])<<8 | uint16(row[xi+7]))
-
-					// reverse alpha-premultiplication.
-					if a != 0 {
-						r *= 0xffff
-						r /= a
-						g *= 0xffff
-						g /= a
-						b *= 0xffff
-						b /= a
-					}
-
-					rgba[0] += int64(coeff) * int64(r)
-					rgba[1] += int64(coeff) * int64(g)
-					rgba[2] += int64(coeff) * int64(b)
-					rgba[3] += int64(coeff) * int64(a)
+					rgba[0] += int64(coeff) * (int64(row[xi+0])<<8 | int64(row[xi+1]))
+					rgba[1] += int64(coeff) * (int64(row[xi+2])<<8 | int64(row[xi+3]))
+					rgba[2] += int64(coeff) * (int64(row[xi+4])<<8 | int64(row[xi+5]))
+					rgba[3] += int64(coeff) * (int64(row[xi+6])<<8 | int64(row[xi+7]))
 					sum += int64(coeff)
 				}
 			}
 
 			xo := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*8
-			value := clampUint16(rgba[0] / sum)
+			// Reverse alpha-premultiplication
+			a := rgba[3] / sum
+			value := clampUint16(rgba[0] * 0xffff / a / sum)
 			out.Pix[xo+0] = uint8(value >> 8)
 			out.Pix[xo+1] = uint8(value)
-			value = clampUint16(rgba[1] / sum)
+			value = clampUint16(rgba[1] * 0xffff / a / sum)
 			out.Pix[xo+2] = uint8(value >> 8)
 			out.Pix[xo+3] = uint8(value)
-			value = clampUint16(rgba[2] / sum)
+			value = clampUint16(rgba[2] * 0xffff / a / sum)
 			out.Pix[xo+4] = uint8(value >> 8)
 			out.Pix[xo+5] = uint8(value)
-			value = clampUint16(rgba[3] / sum)
+			value = clampUint16(a)
 			out.Pix[xo+6] = uint8(value >> 8)
 			out.Pix[xo+7] = uint8(value)
 		}
@@ -283,25 +255,30 @@ func resizeNRGBA64(in *image.NRGBA64, out *image.NRGBA64, scale float64, coeffs 
 					default:
 						xi = 0
 					}
-					rgba[0] += int64(coeff) * int64(uint16(row[xi+0])<<8|uint16(row[xi+1]))
-					rgba[1] += int64(coeff) * int64(uint16(row[xi+2])<<8|uint16(row[xi+3]))
-					rgba[2] += int64(coeff) * int64(uint16(row[xi+4])<<8|uint16(row[xi+5]))
-					rgba[3] += int64(coeff) * int64(uint16(row[xi+6])<<8|uint16(row[xi+7]))
+					
+					// Forward alpha-premultiplication
+					a := int64(row[xi+6])<<8 | int64(row[xi+7])
+					rgba[0] += int64(coeff) * (int64(row[xi+0])<<8 | int64(row[xi+1])) * a / 0xffff
+					rgba[1] += int64(coeff) * (int64(row[xi+2])<<8 | int64(row[xi+3])) * a / 0xffff
+					rgba[2] += int64(coeff) * (int64(row[xi+4])<<8 | int64(row[xi+5])) * a / 0xffff
+					rgba[3] += int64(coeff) * a
 					sum += int64(coeff)
 				}
 			}
 
 			xo := (y-newBounds.Min.Y)*out.Stride + (x-newBounds.Min.X)*8
-			value := clampUint16(rgba[0] / sum)
+			// Reverse alpha-premultiplication
+			a := rgba[3] / sum
+			value := clampUint16(rgba[0] * 0xffff / a / sum)
 			out.Pix[xo+0] = uint8(value >> 8)
 			out.Pix[xo+1] = uint8(value)
-			value = clampUint16(rgba[1] / sum)
+			value = clampUint16(rgba[1] * 0xffff / a / sum)
 			out.Pix[xo+2] = uint8(value >> 8)
 			out.Pix[xo+3] = uint8(value)
-			value = clampUint16(rgba[2] / sum)
+			value = clampUint16(rgba[2] * 0xffff / a / sum)
 			out.Pix[xo+4] = uint8(value >> 8)
 			out.Pix[xo+5] = uint8(value)
-			value = clampUint16(rgba[3] / sum)
+			value = clampUint16(a)
 			out.Pix[xo+6] = uint8(value >> 8)
 			out.Pix[xo+7] = uint8(value)
 		}
