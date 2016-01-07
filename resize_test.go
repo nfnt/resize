@@ -210,6 +210,22 @@ func Test_ResizeWithPremultipliedAlpha(t *testing.T) {
 	}
 }
 
+func Test_ResizeWithTranslucentColor(t *testing.T) {
+	img := image.NewNRGBA(image.Rect(0, 0, 1, 2))
+
+    // Set the pixel colors to an "invisible green" and white.
+    // After resizing, the green shouldn't be visible.
+	img.SetNRGBA(0, 0, color.NRGBA{0x00, 0xFF, 0x00, 0x00})
+	img.SetNRGBA(0, 1, color.NRGBA{0x00, 0x00, 0x00, 0xFF})
+
+	out := Resize(1, 1, img, Bilinear)
+
+	_, g, _, _ := out.At(0, 0).RGBA()
+	if g != 0x00 {
+		t.Errorf("%+v", g)
+	}
+}
+
 const (
 	// Use a small image size for benchmarks. We don't want memory performance
 	// to affect the benchmark results.
