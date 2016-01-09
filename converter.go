@@ -158,13 +158,20 @@ func resizeNRGBA(in *image.NRGBA, out *image.RGBA, scale float64, coeffs []int16
 						xi = 0
 					}
 
+					rgba[0] += int32(coeff) * int32(row[xi+0])
+					rgba[1] += int32(coeff) * int32(row[xi+1])
+					rgba[2] += int32(coeff) * int32(row[xi+2])
+					rgba[3] += int32(coeff) * int32(row[xi+3])
+					sum += int32(coeff)
+
 					// Forward alpha-premultiplication
 					a := int32(row[xi+3])
-					rgba[0] += int32(coeff) * int32(row[xi+0]) * a / 0xff
-					rgba[1] += int32(coeff) * int32(row[xi+1]) * a / 0xff
-					rgba[2] += int32(coeff) * int32(row[xi+2]) * a / 0xff
-					rgba[3] += int32(coeff) * a
-					sum += int32(coeff)
+					rgba[0] *= a
+					rgba[0] /= 0xff
+					rgba[1] *= a
+					rgba[1] /= 0xff
+					rgba[2] *= a
+					rgba[2] /= 0xff
 				}
 			}
 
@@ -252,13 +259,20 @@ func resizeNRGBA64(in *image.NRGBA64, out *image.RGBA64, scale float64, coeffs [
 						xi = 0
 					}
 
-					// Forward alpha-premultiplication
-					a := int64(row[xi+6])<<8 | int64(row[xi+7])
-					rgba[0] += int64(coeff) * (int64(row[xi+0])<<8 | int64(row[xi+1])) * a / 0xffff
-					rgba[1] += int64(coeff) * (int64(row[xi+2])<<8 | int64(row[xi+3])) * a / 0xffff
-					rgba[2] += int64(coeff) * (int64(row[xi+4])<<8 | int64(row[xi+5])) * a / 0xffff
-					rgba[3] += int64(coeff) * a
+					rgba[0] += int64(coeff) * int64(uint16(row[xi+0])<<8|uint16(row[xi+1]))
+					rgba[1] += int64(coeff) * int64(uint16(row[xi+2])<<8|uint16(row[xi+3]))
+					rgba[2] += int64(coeff) * int64(uint16(row[xi+4])<<8|uint16(row[xi+5]))
+					rgba[3] += int64(coeff) * int64(uint16(row[xi+6])<<8|uint16(row[xi+7]))
 					sum += int64(coeff)
+
+					// Forward alpha-premultiplication
+					a := int64(uint16(row[xi+6])<<8 | uint16(row[xi+7]))
+					rgba[0] *= a
+					rgba[0] /= 0xffff
+					rgba[1] *= a
+					rgba[1] /= 0xffff
+					rgba[2] *= a
+					rgba[2] /= 0xffff
 				}
 			}
 
