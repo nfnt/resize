@@ -34,6 +34,10 @@ func TestImage(t *testing.T) {
 		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio440),
 		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio444),
 	}
+	if rats, ok := subsampleRatio410And411(); ok {
+		testImage = append(testImage, newYCC(image.Rect(0, 0, 10, 10), rats[0]))
+		testImage = append(testImage, newYCC(image.Rect(0, 0, 10, 10), rats[1]))
+	}
 	for _, m := range testImage {
 		if !image.Rect(0, 0, 10, 10).Eq(m.Bounds()) {
 			t.Errorf("%T: want bounds %v, got %v",
@@ -60,6 +64,10 @@ func TestConvertYCbCr(t *testing.T) {
 		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio422),
 		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio440),
 		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio444),
+	}
+	if rats, ok := subsampleRatio410And411(); ok {
+		testImage = append(testImage, image.NewYCbCr(image.Rect(0, 0, 50, 50), rats[0]))
+		testImage = append(testImage, image.NewYCbCr(image.Rect(0, 0, 50, 50), rats[1]))
 	}
 
 	for _, img := range testImage {
@@ -150,6 +158,9 @@ func TestYCbCr(t *testing.T) {
 		image.YCbCrSubsampleRatio420,
 		image.YCbCrSubsampleRatio440,
 	}
+	if rats, ok := subsampleRatio410And411(); ok {
+		subsampleRatios = append(subsampleRatios, rats[0], rats[1])
+	}
 	deltas := []image.Point{
 		image.Pt(0, 0),
 		image.Pt(1000, 1001),
@@ -211,4 +222,26 @@ func testYCbCr(t *testing.T, r image.Rectangle, subsampleRatio image.YCbCrSubsam
 			}
 		}
 	}
+}
+
+// subsampleRatio410And411 gets image.YCbCrSubsampleRatio410
+// and image.YCbCrSubsampleRatio411 on newer versions of Go,
+// but still compiles on old versions of Go to maintain
+// backwards compatibility.
+func subsampleRatio410And411() (ratios [2]image.YCbCrSubsampleRatio, ok bool) {
+	var i image.YCbCrSubsampleRatio
+	var numFound int
+	for i.String() != "YCbCrSubsampleRatioUnknown" {
+		switch i.String() {
+		case "YCbCrSubsampleRatio410":
+			ratios[0] = i
+			numFound++
+		case "YCbCrSubsampleRatio411":
+			ratios[1] = i
+			numFound++
+		}
+		i++
+	}
+	ok = (numFound == 2)
+	return
 }

@@ -138,18 +138,50 @@ func (p *ycc) YCbCr() *image.YCbCr {
 			}
 		}
 	default:
-		// Default to 4:4:4 subsampling.
-		for y := ycbcr.Rect.Min.Y; y < ycbcr.Rect.Max.Y; y++ {
-			yy := (y - ycbcr.Rect.Min.Y) * ycbcr.YStride
-			cy := (y - ycbcr.Rect.Min.Y) * ycbcr.CStride
-			for x := ycbcr.Rect.Min.X; x < ycbcr.Rect.Max.X; x++ {
-				xx := (x - ycbcr.Rect.Min.X)
-				yi := yy + xx
-				ci := cy + xx
-				ycbcr.Y[yi] = p.Pix[off+0]
-				ycbcr.Cb[ci] = p.Pix[off+1]
-				ycbcr.Cr[ci] = p.Pix[off+2]
-				off += 3
+		// String is used to avoid Go build errors on older
+		// versions of Go.
+		if ycbcr.SubsampleRatio.String() == "YCbCrSubsampleRatio410" {
+			for y := ycbcr.Rect.Min.Y; y < ycbcr.Rect.Max.Y; y++ {
+				yy := (y - ycbcr.Rect.Min.Y) * ycbcr.YStride
+				cy := (y/2 - ycbcr.Rect.Min.Y/2) * ycbcr.CStride
+				for x := ycbcr.Rect.Min.X; x < ycbcr.Rect.Max.X; x++ {
+					xx := (x - ycbcr.Rect.Min.X)
+					yi := yy + xx
+					ci := cy + xx/4
+					ycbcr.Y[yi] = p.Pix[off+0]
+					ycbcr.Cb[ci] = p.Pix[off+1]
+					ycbcr.Cr[ci] = p.Pix[off+2]
+					off += 3
+				}
+			}
+		} else if ycbcr.SubsampleRatio.String() == "YCbCrSubsampleRatio411" {
+			for y := ycbcr.Rect.Min.Y; y < ycbcr.Rect.Max.Y; y++ {
+				yy := (y - ycbcr.Rect.Min.Y) * ycbcr.YStride
+				cy := (y - ycbcr.Rect.Min.Y) * ycbcr.CStride
+				for x := ycbcr.Rect.Min.X; x < ycbcr.Rect.Max.X; x++ {
+					xx := (x - ycbcr.Rect.Min.X)
+					yi := yy + xx
+					ci := cy + xx/4
+					ycbcr.Y[yi] = p.Pix[off+0]
+					ycbcr.Cb[ci] = p.Pix[off+1]
+					ycbcr.Cr[ci] = p.Pix[off+2]
+					off += 3
+				}
+			}
+		} else {
+			// Default to 4:4:4 subsampling.
+			for y := ycbcr.Rect.Min.Y; y < ycbcr.Rect.Max.Y; y++ {
+				yy := (y - ycbcr.Rect.Min.Y) * ycbcr.YStride
+				cy := (y - ycbcr.Rect.Min.Y) * ycbcr.CStride
+				for x := ycbcr.Rect.Min.X; x < ycbcr.Rect.Max.X; x++ {
+					xx := (x - ycbcr.Rect.Min.X)
+					yi := yy + xx
+					ci := cy + xx
+					ycbcr.Y[yi] = p.Pix[off+0]
+					ycbcr.Cb[ci] = p.Pix[off+1]
+					ycbcr.Cr[ci] = p.Pix[off+2]
+					off += 3
+				}
 			}
 		}
 	}
@@ -208,18 +240,50 @@ func imageYCbCrToYCC(in *image.YCbCr) *ycc {
 			}
 		}
 	default:
-		// Default to 4:4:4 subsampling.
-		for y := in.Rect.Min.Y; y < in.Rect.Max.Y; y++ {
-			yy := (y - in.Rect.Min.Y) * in.YStride
-			cy := (y - in.Rect.Min.Y) * in.CStride
-			for x := in.Rect.Min.X; x < in.Rect.Max.X; x++ {
-				xx := (x - in.Rect.Min.X)
-				yi := yy + xx
-				ci := cy + xx
-				p.Pix[off+0] = in.Y[yi]
-				p.Pix[off+1] = in.Cb[ci]
-				p.Pix[off+2] = in.Cr[ci]
-				off += 3
+		// String is used to avoid Go build errors on older
+		// versions of Go.
+		if in.SubsampleRatio.String() == "YCbCrSubsampleRatio410" {
+			for y := in.Rect.Min.Y; y < in.Rect.Max.Y; y++ {
+				yy := (y - in.Rect.Min.Y) * in.YStride
+				cy := (y/2 - in.Rect.Min.Y/2) * in.CStride
+				for x := in.Rect.Min.X; x < in.Rect.Max.X; x++ {
+					xx := (x - in.Rect.Min.X)
+					yi := yy + xx
+					ci := cy + xx/4
+					p.Pix[off+0] = in.Y[yi]
+					p.Pix[off+1] = in.Cb[ci]
+					p.Pix[off+2] = in.Cr[ci]
+					off += 3
+				}
+			}
+		} else if in.SubsampleRatio.String() == "YCbCrSubsampleRatio411" {
+			for y := in.Rect.Min.Y; y < in.Rect.Max.Y; y++ {
+				yy := (y - in.Rect.Min.Y) * in.YStride
+				cy := (y - in.Rect.Min.Y) * in.CStride
+				for x := in.Rect.Min.X; x < in.Rect.Max.X; x++ {
+					xx := (x - in.Rect.Min.X)
+					yi := yy + xx
+					ci := cy + xx/4
+					p.Pix[off+0] = in.Y[yi]
+					p.Pix[off+1] = in.Cb[ci]
+					p.Pix[off+2] = in.Cr[ci]
+					off += 3
+				}
+			}
+		} else {
+			// Default to 4:4:4 subsampling.
+			for y := in.Rect.Min.Y; y < in.Rect.Max.Y; y++ {
+				yy := (y - in.Rect.Min.Y) * in.YStride
+				cy := (y - in.Rect.Min.Y) * in.CStride
+				for x := in.Rect.Min.X; x < in.Rect.Max.X; x++ {
+					xx := (x - in.Rect.Min.X)
+					yi := yy + xx
+					ci := cy + xx
+					p.Pix[off+0] = in.Y[yi]
+					p.Pix[off+1] = in.Cb[ci]
+					p.Pix[off+2] = in.Cr[ci]
+					off += 3
+				}
 			}
 		}
 	}
