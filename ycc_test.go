@@ -33,7 +33,9 @@ func TestImage(t *testing.T) {
 		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio422),
 		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio440),
 		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio444),
-		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio410),
+	}
+	if rat410, ok := subsampleRatio410(); ok {
+		testImage = append(testImage, newYCC(image.Rect(0, 0, 10, 10), rat410))
 	}
 	for _, m := range testImage {
 		if !image.Rect(0, 0, 10, 10).Eq(m.Bounds()) {
@@ -61,7 +63,9 @@ func TestConvertYCbCr(t *testing.T) {
 		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio422),
 		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio440),
 		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio444),
-		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio410),
+	}
+	if rat410, ok := subsampleRatio410(); ok {
+		testImage = append(testImage, image.NewYCbCr(image.Rect(0, 0, 50, 50), rat410))
 	}
 
 	for _, img := range testImage {
@@ -151,7 +155,9 @@ func TestYCbCr(t *testing.T) {
 		image.YCbCrSubsampleRatio422,
 		image.YCbCrSubsampleRatio420,
 		image.YCbCrSubsampleRatio440,
-		image.YCbCrSubsampleRatio410,
+	}
+	if rat410, ok := subsampleRatio410(); ok {
+		subsampleRatios = append(subsampleRatios, rat410)
 	}
 	deltas := []image.Point{
 		image.Pt(0, 0),
@@ -214,4 +220,18 @@ func testYCbCr(t *testing.T, r image.Rectangle, subsampleRatio image.YCbCrSubsam
 			}
 		}
 	}
+}
+
+// subsampleRatio410 gets image.YCbCrSubsampleRatio410 on
+// newer versions of Go, but still compiles on old versions
+// of Go to maintain backwards compatibility.
+func subsampleRatio410() (image.YCbCrSubsampleRatio, bool) {
+	var i image.YCbCrSubsampleRatio
+	for i.String() != "YCbCrSubsampleRatioUnknown" {
+		if i.String() == "YCbCrSubsampleRatio410" {
+			return i, true
+		}
+		i++
+	}
+	return i, false
 }
