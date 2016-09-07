@@ -34,8 +34,9 @@ func TestImage(t *testing.T) {
 		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio440),
 		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio444),
 	}
-	if rat410, ok := subsampleRatio410(); ok {
-		testImage = append(testImage, newYCC(image.Rect(0, 0, 10, 10), rat410))
+	if rats, ok := subsampleRatio410And411(); ok {
+		testImage = append(testImage, newYCC(image.Rect(0, 0, 10, 10), rats[0]))
+		testImage = append(testImage, newYCC(image.Rect(0, 0, 10, 10), rats[1]))
 	}
 	for _, m := range testImage {
 		if !image.Rect(0, 0, 10, 10).Eq(m.Bounds()) {
@@ -64,8 +65,9 @@ func TestConvertYCbCr(t *testing.T) {
 		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio440),
 		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio444),
 	}
-	if rat410, ok := subsampleRatio410(); ok {
-		testImage = append(testImage, image.NewYCbCr(image.Rect(0, 0, 50, 50), rat410))
+	if rats, ok := subsampleRatio410And411(); ok {
+		testImage = append(testImage, image.NewYCbCr(image.Rect(0, 0, 50, 50), rats[0]))
+		testImage = append(testImage, image.NewYCbCr(image.Rect(0, 0, 50, 50), rats[1]))
 	}
 
 	for _, img := range testImage {
@@ -156,8 +158,8 @@ func TestYCbCr(t *testing.T) {
 		image.YCbCrSubsampleRatio420,
 		image.YCbCrSubsampleRatio440,
 	}
-	if rat410, ok := subsampleRatio410(); ok {
-		subsampleRatios = append(subsampleRatios, rat410)
+	if rats, ok := subsampleRatio410And411(); ok {
+		subsampleRatios = append(subsampleRatios, rats[0], rats[1])
 	}
 	deltas := []image.Point{
 		image.Pt(0, 0),
@@ -222,16 +224,24 @@ func testYCbCr(t *testing.T, r image.Rectangle, subsampleRatio image.YCbCrSubsam
 	}
 }
 
-// subsampleRatio410 gets image.YCbCrSubsampleRatio410 on
-// newer versions of Go, but still compiles on old versions
-// of Go to maintain backwards compatibility.
-func subsampleRatio410() (image.YCbCrSubsampleRatio, bool) {
+// subsampleRatio410And411 gets image.YCbCrSubsampleRatio410
+// and image.YCbCrSubsampleRatio411 on newer versions of Go,
+// but still compiles on old versions of Go to maintain
+// backwards compatibility.
+func subsampleRatio410And411() (ratios [2]image.YCbCrSubsampleRatio, ok bool) {
 	var i image.YCbCrSubsampleRatio
+	var numFound int
 	for i.String() != "YCbCrSubsampleRatioUnknown" {
-		if i.String() == "YCbCrSubsampleRatio410" {
-			return i, true
+		switch i.String() {
+		case "YCbCrSubsampleRatio410":
+			ratios[0] = i
+			numFound++
+		case "YCbCrSubsampleRatio411":
+			ratios[1] = i
+			numFound++
 		}
 		i++
 	}
-	return i, false
+	ok = (numFound == 2)
+	return
 }
