@@ -33,6 +33,8 @@ func TestImage(t *testing.T) {
 		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio422),
 		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio440),
 		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio444),
+		newYCC(image.Rect(0, 0, 10, 10), yCbCrSubsampleRatio411),
+		newYCC(image.Rect(0, 0, 10, 10), yCbCrSubsampleRatio410),
 	}
 	for _, m := range testImage {
 		if !image.Rect(0, 0, 10, 10).Eq(m.Bounds()) {
@@ -60,6 +62,8 @@ func TestConvertYCbCr(t *testing.T) {
 		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio422),
 		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio440),
 		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio444),
+		image.NewYCbCr(image.Rect(0, 0, 50, 50), yCbCrSubsampleRatio411),
+		image.NewYCbCr(image.Rect(0, 0, 50, 50), yCbCrSubsampleRatio410),
 	}
 
 	for _, img := range testImage {
@@ -149,6 +153,8 @@ func TestYCbCr(t *testing.T) {
 		image.YCbCrSubsampleRatio422,
 		image.YCbCrSubsampleRatio420,
 		image.YCbCrSubsampleRatio440,
+		yCbCrSubsampleRatio411,
+		yCbCrSubsampleRatio410,
 	}
 	deltas := []image.Point{
 		image.Pt(0, 0),
