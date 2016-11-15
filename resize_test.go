@@ -37,6 +37,20 @@ func Test_ZeroImg(t *testing.T) {
 	}
 }
 
+func Test_HalfZeroImg(t *testing.T) {
+	zeroImg := image.NewGray16(image.Rect(0, 0, 0, 100))
+
+	m := Resize(0, 1, zeroImg, NearestNeighbor)
+	if m.Bounds() != zeroImg.Bounds() {
+		t.Fail()
+	}
+
+	m = Resize(1, 0, zeroImg, NearestNeighbor)
+	if m.Bounds() != zeroImg.Bounds() {
+		t.Fail()
+	}
+}
+
 func Test_CorrectResize(t *testing.T) {
 	zeroImg := image.NewGray16(image.Rect(0, 0, 256, 256))
 
