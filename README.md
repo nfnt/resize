@@ -145,5 +145,5 @@ Original image
 License
 -------
 
-Copyright (c) 2012 Jan Schlicht <janschlicht@gmail.com>
+Copyright (c) 2015 Jan Schlicht <janschlicht@gmail.com>
 Resize is released under a MIT style license.
