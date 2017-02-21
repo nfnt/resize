@@ -27,13 +27,21 @@ type Image interface {
 	SubImage(image.Rectangle) image.Image
 }
 
-func TestImage(t *testing.T) {
-	testImage := []Image{
-		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio420),
-		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio422),
-		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio440),
-		newYCC(image.Rect(0, 0, 10, 10), image.YCbCrSubsampleRatio444),
+// Additional YCbCrSubsampleRatio are appended in ycc_test_go15.go if Go 1.5
+// or later is being used.
+var YCbCrSubsampleRatios = []image.YCbCrSubsampleRatio{
+	image.YCbCrSubsampleRatio420,
+	image.YCbCrSubsampleRatio422,
+	image.YCbCrSubsampleRatio440,
+	image.YCbCrSubsampleRatio444,
+}
+
+func TestYCCImage(t *testing.T) {
+	testImage := make([]Image, len(YCbCrSubsampleRatios))
+	for i, ratio := range YCbCrSubsampleRatios {
+		testImage[i] = newYCC(image.Rect(0, 0, 10, 10), ratio)
 	}
+
 	for _, m := range testImage {
 		if !image.Rect(0, 0, 10, 10).Eq(m.Bounds()) {
 			t.Errorf("%T: want bounds %v, got %v",
@@ -55,11 +63,9 @@ func TestImage(t *testing.T) {
 }
 
 func TestConvertYCbCr(t *testing.T) {
-	testImage := []Image{
-		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio420),
-		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio422),
-		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio440),
-		image.NewYCbCr(image.Rect(0, 0, 50, 50), image.YCbCrSubsampleRatio444),
+	testImage := make([]Image, len(YCbCrSubsampleRatios))
+	for i, ratio := range YCbCrSubsampleRatios {
+		testImage[i] = image.NewYCbCr(image.Rect(0, 0, 50, 50), ratio)
 	}
 
 	for _, img := range testImage {
@@ -84,16 +90,16 @@ func TestConvertYCbCr(t *testing.T) {
 				ci := m.COffset(x, y)
 				si := (y * ystride) + (x * xstride)
 				if m.Y[yi] != yc.Pix[si] {
-					t.Errorf("Err Y - found: %d expected: %d x: %d y: %d yi: %d si: %d",
-						m.Y[yi], yc.Pix[si], x, y, yi, si)
+					t.Errorf("Err Y - found: %d expected: %d x: %d y: %d yi: %d si: %d ratio: %s",
+						m.Y[yi], yc.Pix[si], x, y, yi, si, m.SubsampleRatio)
 				}
 				if m.Cb[ci] != yc.Pix[si+1] {
-					t.Errorf("Err Cb - found: %d expected: %d x: %d y: %d ci: %d si: %d",
-						m.Cb[ci], yc.Pix[si+1], x, y, ci, si+1)
+					t.Errorf("Err Cb - found: %d expected: %d x: %d y: %d ci: %d si: %d ratio: %s",
+						m.Cb[ci], yc.Pix[si+1], x, y, ci, si+1, m.SubsampleRatio)
 				}
 				if m.Cr[ci] != yc.Pix[si+2] {
-					t.Errorf("Err Cr - found: %d expected: %d x: %d y: %d ci: %d si: %d",
-						m.Cr[ci], yc.Pix[si+2], x, y, ci, si+2)
+					t.Errorf("Err Cr - found: %d expected: %d x: %d y: %d ci: %d si: %d ratio: %s",
+						m.Cr[ci], yc.Pix[si+2], x, y, ci, si+2, m.SubsampleRatio)
 				}
 			}
 		}
@@ -105,16 +111,16 @@ func TestConvertYCbCr(t *testing.T) {
 				yi := m.YOffset(x, y)
 				ci := m.COffset(x, y)
 				if m.Y[yi] != ym.Y[yi] {
-					t.Errorf("Err Y - found: %d expected: %d x: %d y: %d yi: %d",
-						m.Y[yi], ym.Y[yi], x, y, yi)
+					t.Errorf("Err Y - found: %d expected: %d x: %d y: %d yi: %d ratio: %s",
+						m.Y[yi], ym.Y[yi], x, y, yi, m.SubsampleRatio)
 				}
 				if m.Cb[ci] != ym.Cb[ci] {
-					t.Errorf("Err Cb - found: %d expected: %d x: %d y: %d ci: %d",
-						m.Cb[ci], ym.Cb[ci], x, y, ci)
+					t.Errorf("Err Cb - found: %d expected: %d x: %d y: %d ci: %d ratio: %s",
+						m.Cb[ci], ym.Cb[ci], x, y, ci, m.SubsampleRatio)
 				}
 				if m.Cr[ci] != ym.Cr[ci] {
-					t.Errorf("Err Cr - found: %d expected: %d x: %d y: %d ci: %d",
-						m.Cr[ci], ym.Cr[ci], x, y, ci)
+					t.Errorf("Err Cr - found: %d expected: %d x: %d y: %d ci: %d ratio: %s",
+						m.Cr[ci], ym.Cr[ci], x, y, ci, m.SubsampleRatio)
 				}
 			}
 		}
@@ -144,12 +150,6 @@ func TestYCbCr(t *testing.T) {
 		image.Rect(9, 9, 17, 17),
 		image.Rect(10, 10, 17, 17),
 	}
-	subsampleRatios := []image.YCbCrSubsampleRatio{
-		image.YCbCrSubsampleRatio444,
-		image.YCbCrSubsampleRatio422,
-		image.YCbCrSubsampleRatio420,
-		image.YCbCrSubsampleRatio440,
-	}
 	deltas := []image.Point{
 		image.Pt(0, 0),
 		image.Pt(1000, 1001),
@@ -157,7 +157,7 @@ func TestYCbCr(t *testing.T) {
 		image.Pt(-701, -801),
 	}
 	for _, r := range rects {
-		for _, subsampleRatio := range subsampleRatios {
+		for _, subsampleRatio := range YCbCrSubsampleRatios {
 			for _, delta := range deltas {
 				testYCbCr(t, r, subsampleRatio, delta)
 			}
