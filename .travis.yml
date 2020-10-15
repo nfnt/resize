@@ -1,7 +1,13 @@
 language: go
-
+arch:
+  - ppc64le
+  - amd64
+jobs:
+  exclude :
+    - arch : ppc64le
+      go : 
+       - 1.4
 go:
   - "1.x"
-  - "1.1"
   - "1.4"
   - "1.10"
