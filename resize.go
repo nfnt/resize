@@ -89,7 +89,7 @@ func Resize(width, height uint, img image.Image, interp InterpolationFunction) i
 	}
 
 	// Trivial case: return input image
-	if int(width) == img.Bounds().Dx() && int(height) == img.Bounds().Dy() {
+	if int(width) == img.Bounds().Max.X && int(height) == img.Bounds().Max.Y {
 		return img
 	}
 
